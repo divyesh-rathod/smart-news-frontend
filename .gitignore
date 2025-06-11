@@ -1,0 +1,63 @@
+# ---- Logs ----
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ---- Dependencies ----
+/node_modules/
+
+# ---- Production builds ----
+/dist/
+/dist-ssr/
+/build/
+
+# ---- Local env files ----
+*.local
+.env
+.env.*.local
+
+# ---- Editor directories & files ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+/*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ---- OS generated files ----
+.DS_Store
+Thumbs.db
+
+# ---- TypeScript cache & outputs ----
+*.tsbuildinfo
+# If you generate declaration files:
+/types/
+
+# ---- Yarn v2+ Plug’n’Play ----
+.yarn/cache/
+/.yarn/unplugged/
+/.yarn/build-state.yml
+.pnp.cjs
+.pnp.loader.mjs
+
+# ---- ESLint cache ----
+.eslintcache
+
+# ---- Testing coverage ----
+/coverage/
+
+# ---- Optional npm cache ----
+.npm/
+
+# ---- Vite cache ----
+/node_modules/.vite/
+
+# ---- Misc ----
+/yarn-error.log
+/# End of .gitignore
