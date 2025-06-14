@@ -1,34 +1,16 @@
 import axios from 'axios';
-import type { LoginFormData, SignupFormData } from '../schemas/authSchemas';
+import {type  LoginFormData, type SignupFormData }  from '../schemas/authSchemas';
+import   {type AuthResponse, } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080/api/V1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/V1'; // ✅ From env
 
 // Create axios instance with base configuration
-    // This instance can be used to make authenticated requests to the API
 const authAPI = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone_number: string;
-  profile_picture?: string;
-  is_blocked: boolean;
-  is_deleted: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  access_token: string;
-  token_type: string;
-}
 
 export const authRequests = {
   login: async (data: LoginFormData): Promise<AuthResponse> => {

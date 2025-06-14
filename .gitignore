@@ -61,3 +61,7 @@ Thumbs.db
 # ---- Misc ----
 /yarn-error.log
 /# End of .gitignore
+
+# ---- environment files ----
+.env
+
