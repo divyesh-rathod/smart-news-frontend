@@ -53,7 +53,7 @@ const handleApiError = (error: FetchBaseQueryError): ApiError => {
 
 // Base query with automatic token attachment
 const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/V1',
+  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/V1',
   
   // Automatically add auth token to requests
   prepareHeaders: (headers, { getState }) => {
