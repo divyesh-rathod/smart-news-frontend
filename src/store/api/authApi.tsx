@@ -1,7 +1,55 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { AuthResponse, User } from '../../types/authTypes';
 import type { LoginFormData, SignupFormData } from '../../schemas/authSchemas';
-import { RootState } from '../index';
+import { type RootState } from '../index';
+
+// Custom error type for our API
+interface ApiError {
+  status: string | number;
+  message: string;
+}
+
+// Helper function to handle different error types
+const handleApiError = (error: FetchBaseQueryError): ApiError => {
+  if ('status' in error) {
+    // HTTP error
+    if (error.status === 'FETCH_ERROR') {
+      return {
+        status: 'FETCH_ERROR',
+        message: error.error || 'Network error occurred',
+      };
+    }
+    
+    if (error.status === 'PARSING_ERROR') {
+      return {
+        status: 'PARSING_ERROR',
+        message: 'Failed to parse server response',
+      };
+    }
+    
+    if (error.status === 'TIMEOUT_ERROR') {
+      return {
+        status: 'TIMEOUT_ERROR',
+        message: 'Request timeout',
+      };
+    }
+    
+    // HTTP status errors (400, 401, 500, etc.)
+    if (typeof error.status === 'number') {
+      const errorData = error.data as any;
+      return {
+        status: error.status,
+        message: errorData?.detail || errorData?.message || `HTTP Error ${error.status}`,
+      };
+    }
+  }
+  
+  // Fallback for unknown error types
+  return {
+    status: 'UNKNOWN_ERROR',
+    message: 'An unexpected error occurred',
+  };
+};
 
 // Base query with automatic token attachment
 const baseQuery = fetchBaseQuery({
@@ -44,12 +92,9 @@ export const authApi = createApi({
       // Transform response if needed
       transformResponse: (response: AuthResponse) => response,
       
-      // Transform error response
-      transformErrorResponse: (response: { status: string | number; data: any }) => {
-        return {
-          status: response.status,
-          message: response.data?.detail || 'Login failed',
-        };
+      // Fixed: Proper error handling for FetchBaseQueryError
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
       },
     }),
     
@@ -63,11 +108,9 @@ export const authApi = createApi({
       
       invalidatesTags: ['Auth', 'User'],
       
-      transformErrorResponse: (response: { status: string | number; data: any }) => {
-        return {
-          status: response.status,
-          message: response.data?.detail || 'Signup failed',
-        };
+      // Fixed: Proper error handling
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
       },
     }),
     
@@ -75,6 +118,10 @@ export const authApi = createApi({
     getCurrentUser: builder.query<User, void>({
       query: () => '/users/me',
       providesTags: ['User'],
+      
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
+      },
     }),
     
     // Update user profile
@@ -101,6 +148,10 @@ export const authApi = createApi({
       },
       
       invalidatesTags: ['User'],
+      
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
+      },
     }),
     
     // Refresh token (if your API supports it)
@@ -109,6 +160,10 @@ export const authApi = createApi({
         url: '/auth/refresh',
         method: 'POST',
       }),
+      
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
+      },
     }),
     
     // Logout (if you need server-side logout)
@@ -119,6 +174,10 @@ export const authApi = createApi({
       }),
       
       invalidatesTags: ['Auth', 'User'],
+      
+      transformErrorResponse: (error: FetchBaseQueryError) => {
+        return handleApiError(error);
+      },
     }),
   }),
 });

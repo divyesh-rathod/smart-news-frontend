@@ -2,9 +2,10 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from '../App';
 import LoginPage from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
+import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
-import Layout from '../components/Layout';
+import Layout from '../components/layout';
 
 export const router = createBrowserRouter([
   {
@@ -28,12 +29,12 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/signup',
-        element: (
-          <PublicRoute>
-            <SignupPage />
-          </PublicRoute>
-        ),
+        // path: '/signup',
+        // element: (
+        //   <PublicRoute>
+        //     <SignupPage />
+        //   </PublicRoute>
+        // ),
       },
       
       // Protected routes (require authentication)
@@ -47,36 +48,36 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      {
-        path: '/news',
-        element: (
-          <ProtectedRoute>
-            <Layout>
-              <News />
-            </Layout>
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/news/:articleId',
-        element: (
-          <ProtectedRoute>
-            <Layout>
-              <ArticleDetail />
-            </Layout>
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: '/profile',
-        element: (
-          <ProtectedRoute>
-            <Layout>
-              <Profile />
-            </Layout>
-          </ProtectedRoute>
-        ),
-      },
+      // {
+      //   path: '/news',
+      //   element: (
+      //     <ProtectedRoute>
+      //       <Layout>
+      //         <News />
+      //       </Layout>
+      //     </ProtectedRoute>
+      //   ),
+      // },
+      // {
+      //   path: '/news/:articleId',
+      //   element: (
+      //     <ProtectedRoute>
+      //       <Layout>
+      //         <ArticleDetail />
+      //       </Layout>
+      //     </ProtectedRoute>
+      //   ),
+      // },
+      // {
+      //   path: '/profile',
+      //   element: (
+      //     <ProtectedRoute>
+      //       <Layout>
+      //         <Profile />
+      //       </Layout>
+      //     </ProtectedRoute>
+      //   ),
+      // },
       
       // Catch-all route for 404
       {

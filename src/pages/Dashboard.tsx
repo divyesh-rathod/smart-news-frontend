@@ -17,7 +17,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
-import './Dashboard.css'; // We'll create this CSS file
+import './DashBoard.css'; // We'll create this CSS file
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();

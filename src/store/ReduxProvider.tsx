@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Provider } from 'react-redux';
+import {  Provider } from 'react-redux';
 import { store } from './index';
 import { restoreAuth } from './slices/authSlice';
 
@@ -13,7 +13,11 @@ const ReduxProvider = ({ children }: ReduxProviderProps) => {
         store.dispatch(restoreAuth());
     }, []);
 
-    return <Provider store={store}>{children}</Provider>;
+    return (
+        <Provider store={store}>
+          {children}
+        </Provider>
+      );
 };
 
 export default ReduxProvider;
