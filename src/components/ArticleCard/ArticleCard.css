@@ -1,0 +1,185 @@
+/* src/components/ArticleCard/ArticleCard.css */
+
+.article-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+    border: 1px solid #e1e5e9;
+    position: relative;
+    overflow: hidden;
+}
+
+.article-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.article-card-header {
+    margin-bottom: 16px;
+}
+
+.article-card-title {
+    margin: 0 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #1a1a1a;
+}
+
+.article-title-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+    cursor: pointer;
+}
+
+.article-title-link:hover {
+    color: #2563eb;
+}
+
+.article-title-link:visited {
+    color: #6366f1;
+}
+
+.article-card-date {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.article-card-body {
+    margin-bottom: 20px;
+}
+
+.article-card-description {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #374151;
+    margin: 0;
+}
+
+.article-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.article-card-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+}
+
+.article-category-tag {
+    display: inline-block;
+    background: #f3f4f6;
+    color: #374151;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    transition: background-color 0.2s ease;
+}
+
+.article-category-tag:hover {
+    background: #e5e7eb;
+}
+
+.article-card-actions {
+    display: flex;
+    align-items: center;
+}
+
+.article-read-more {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.article-read-more:hover {
+    background: #2563eb;
+    color: white;
+    text-decoration: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .article-card {
+        padding: 20px;
+        margin-bottom: 16px;
+    }
+
+    .article-card-title {
+        font-size: 1.125rem;
+    }
+
+    .article-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .article-card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-card {
+        padding: 16px;
+    }
+
+    .article-card-categories {
+        margin-bottom: 8px;
+    }
+
+    .article-read-more {
+        font-size: 0.8rem;
+        padding: 8px 16px;
+    }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+    .article-card {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .article-card-title {
+        color: #f9fafb;
+    }
+
+    .article-title-link:hover {
+        color: #60a5fa;
+    }
+
+    .article-card-description {
+        color: #d1d5db;
+    }
+
+    .article-card-date {
+        color: #9ca3af;
+    }
+
+    .article-category-tag {
+        background: #374151;
+        color: #d1d5db;
+    }
+
+    .article-category-tag:hover {
+        background: #4b5563;
+    } }

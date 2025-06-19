@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import App from '../App';
 import LoginPage from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
+import SignupPage from '../pages/Signup';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
@@ -29,12 +30,12 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        // path: '/signup',
-        // element: (
-        //   <PublicRoute>
-        //     <SignupPage />
-        //   </PublicRoute>
-        // ),
+        path: '/signup',
+        element: (
+          <PublicRoute>
+            <SignupPage />
+          </PublicRoute>
+        ),
       },
       
       // Protected routes (require authentication)
