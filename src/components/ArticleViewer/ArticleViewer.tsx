@@ -1,4 +1,4 @@
-// src/components/ArticleViewer/ArticleViewerRedux.tsx
+// src/components/ArticleViewer/ArticleViewer.tsx
 import React, { useEffect } from 'react';
 import { useNews } from '../../hooks/useNews';
 import './ArticleViewer.css';
@@ -30,6 +30,8 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     markArticleAsRead,
     toggleArticleLike,
     setupKeyboardNavigation,
+    pauseReadTimer,
+    resumeReadTimer,
     progress,
   } = useNews();
 
@@ -38,6 +40,27 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     const cleanup = setupKeyboardNavigation();
     return cleanup;
   }, [setupKeyboardNavigation]);
+
+  // Handle page visibility changes (pause/resume timer when switching tabs)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User switched away from tab - pause timer
+        pauseReadTimer();
+        console.log('Tab hidden - pausing read timer');
+      } else {
+        // User came back to tab - resume timer
+        resumeReadTimer();
+        console.log('Tab visible - resuming read timer');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [pauseReadTimer, resumeReadTimer]);
 
   // Notify parent component of article changes
   useEffect(() => {
@@ -184,7 +207,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         <div className="article-body">
           {currentArticle.description && (
             <div className="article-description">
-              <p>{currentArticle.description}</p>
+              <p>{currentArticle.category_2}</p>
             </div>
           )}
           
@@ -230,9 +253,12 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         ></div>
       </div>
 
-      {/* Keyboard Instructions */}
+      {/* Keyboard Instructions with Auto-Read Info */}
       <div className="keyboard-hint">
-        <p>Use ← → arrow keys to navigate • Press R to mark as read</p>
+        <p>
+          Use ← → arrow keys to navigate • Press R to mark as read<br />
+          <small>📖 Articles auto-mark as read after 10 seconds</small>
+        </p>
       </div>
     </div>
   );

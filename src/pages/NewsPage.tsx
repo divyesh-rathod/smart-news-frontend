@@ -44,7 +44,7 @@ const NewsPage: React.FC = () => {
         <ArticleViewer
           onArticleChange={handleArticleChange}
           showLikeButton={true}
-          autoMarkAsRead={false}
+          autoMarkAsRead={true}
         />
       </main>
 
@@ -57,14 +57,14 @@ const NewsPage: React.FC = () => {
       )}
 
       {/* Optional: Article info panel */}
-      {currentArticle && (
+      {/* {currentArticle && (
         <div className="article-info-panel">
           <p>
             Reading article {currentIndex + 1} of {totalArticles} • 
             Published {new Date(currentArticle.pub_date).toLocaleDateString()}
           </p>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import App from '../App';
 import LoginPage from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import SignupPage from '../pages/Signup';
+import News from '../pages/NewsPage';
 import NotFound from '../pages/NotFound';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
@@ -49,16 +50,16 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      // {
-      //   path: '/news',
-      //   element: (
-      //     <ProtectedRoute>
-      //       <Layout>
-      //         <News />
-      //       </Layout>
-      //     </ProtectedRoute>
-      //   ),
-      // },
+      {
+        path: '/news',
+        element: (
+          <ProtectedRoute>
+            <Layout>
+              <News />
+            </Layout>
+          </ProtectedRoute>
+        ),
+      },
       // {
       //   path: '/news/:articleId',
       //   element: (

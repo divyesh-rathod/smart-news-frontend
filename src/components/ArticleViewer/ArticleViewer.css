@@ -1,0 +1,468 @@
+/* src/components/ArticleViewer/ArticleViewer.css */
+
+.article-viewer-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    background-color: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
+/* Loading State */
+.article-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #333;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.article-loading p {
+    color: #ccc;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* Empty State */
+.article-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #ccc;
+}
+
+.article-empty h2 {
+    color: #fff;
+    margin-bottom: 12px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.article-empty p {
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Header Navigation */
+.article-viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 24px 0;
+    border-bottom: 2px solid #333;
+    margin-bottom: 32px;
+}
+
+.article-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.current-article {
+    color: #007bff;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.article-separator {
+    color: #888;
+    font-weight: 400;
+}
+
+.total-articles {
+    color: #ccc;
+    font-weight: 600;
+}
+
+.article-nav-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.nav-button {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #007bff;
+    background: #000;
+    color: #007bff;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-button:hover:not(.disabled) {
+    background: #007bff;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.nav-button:active:not(.disabled) {
+    transform: translateY(0);
+}
+
+.nav-button.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: #333;
+    color: #666;
+}
+
+.prev-button::before {
+    content: "←";
+}
+
+.next-button::before {
+    content: "→";
+}
+
+/* Article Content */
+.article-content {
+    transition: all 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+}
+
+.article-content.transitioning {
+    opacity: 0.7;
+    transform: translateY(10px);
+}
+
+.article-header {
+    margin-bottom: 32px;
+}
+
+.article-title {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0 0 20px 0;
+    color: #fff;
+}
+
+.article-title-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.3s ease;
+    cursor: pointer;
+}
+
+.article-title-link:hover {
+    color: #007bff;
+}
+
+.article-title-link:visited {
+    color: #0056b3;
+}
+
+.article-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.article-date {
+    font-size: 0.95rem;
+    color: #ccc;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+}
+
+.article-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.category-tag {
+    background: #007bff;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.025em;
+    transition: background-color 0.2s ease;
+}
+
+.category-tag:hover {
+    background: #0056b3;
+}
+
+/* Article Body */
+.article-body {
+    margin-bottom: 40px;
+}
+
+.article-description {
+    margin-bottom: 32px;
+}
+
+.article-description p {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: #fff;
+    margin: 0;
+    text-align: justify;
+}
+
+/* Article Actions */
+.article-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.read-full-article-btn {
+    display: inline-block;
+    background: #007bff;
+    color: #fff;
+    text-decoration: none;
+    padding: 14px 28px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.read-full-article-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    text-decoration: none;
+    color: #fff;
+}
+
+.article-action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.mark-read-btn,
+.like-btn {
+    padding: 10px 20px;
+    border: 2px solid #333;
+    background: #000;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 120px;
+}
+
+.mark-read-btn:hover {
+    border-color: #007bff;
+    background: #007bff;
+    color: #fff;
+}
+
+.like-btn:hover {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: #fff;
+}
+
+.mark-read-btn:disabled,
+.like-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Progress Indicator */
+.article-progress {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: #333;
+    z-index: 1000;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #007bff;
+    transition: width 0.3s ease;
+    border-radius: 0 2px 2px 0;
+}
+
+/* Keyboard Hint */
+.keyboard-hint {
+    margin-top: 40px;
+    padding: 16px;
+    background: #333;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.keyboard-hint p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #ccc;
+    text-align: center;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .article-viewer-container {
+        padding: 16px;
+    }
+
+    .article-viewer-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+        padding: 12px 0 20px 0;
+    }
+
+    .article-counter {
+        justify-content: center;
+    }
+
+    .article-nav-buttons {
+        justify-content: center;
+    }
+
+    .nav-button {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+
+    .article-content {
+        padding: 1.5rem;
+    }
+
+    .article-title {
+        font-size: 1.5rem;
+        line-height: 1.4;
+    }
+
+    .article-meta {
+        gap: 12px;
+    }
+
+    .article-description p {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .article-action-buttons {
+        flex-direction: column;
+    }
+
+    .mark-read-btn,
+    .like-btn {
+        min-width: auto;
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .article-viewer-container {
+        padding: 12px;
+    }
+
+    .article-content {
+        padding: 1rem;
+    }
+
+    .article-title {
+        font-size: 1.25rem;
+    }
+
+    .article-categories {
+        gap: 6px;
+    }
+
+    .category-tag {
+        font-size: 0.75rem;
+        padding: 4px 8px;
+    }
+
+    .read-full-article-btn {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+
+    .keyboard-hint {
+        margin-top: 24px;
+        padding: 12px;
+    }
+
+    .keyboard-hint p {
+        font-size: 0.8rem;
+    }
+}
+
+/* Animation for smooth transitions */
+@media (prefers-reduced-motion: no-preference) {
+    .article-content {
+        animation: fadeInUp 0.4s ease-out;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Focus styles for accessibility */
+.nav-button:focus,
+.mark-read-btn:focus,
+.like-btn:focus,
+.read-full-article-btn:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px; }

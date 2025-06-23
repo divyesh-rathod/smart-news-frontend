@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import React from 'react';
 import {
   Box,
@@ -17,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../store/hooks';
-import './DashBoard.css'; // We'll create this CSS file
+import './DashBoard.css';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const Dashboard: React.FC = () => {
     {
       title: 'Articles Read Today',
       value: '12',
-      icon: <Article sx={{ fontSize: 40, color: '#667eea' }} />,
+      icon: <Article sx={{ fontSize: 40, color: '#007bff' }} />,
       action: () => navigate('/news'),
     },
     {
@@ -58,7 +59,7 @@ const Dashboard: React.FC = () => {
           sx={{ 
             p: 3, 
             mb: 3, 
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
+            background: 'linear-gradient(135deg, #007bff 0%, #0056b3 100%)', 
             color: 'white',
             borderRadius: 2
           }}
@@ -148,9 +149,9 @@ const Dashboard: React.FC = () => {
                 onClick={() => navigate('/news')}
                 sx={{ 
                   mt: 3,
-                  background: 'linear-gradient(45deg, #667eea 30%, #764ba2 90%)',
+                  background: '#007bff',
                   '&:hover': {
-                    background: 'linear-gradient(45deg, #5a6fd8 30%, #6a4190 90%)',
+                    background: '#0056b3',
                   }
                 }}
               >
@@ -169,6 +170,14 @@ const Dashboard: React.FC = () => {
                   variant="outlined" 
                   fullWidth
                   onClick={() => navigate('/news')}
+                  sx={{
+                    borderColor: '#007bff',
+                    color: '#007bff',
+                    '&:hover': {
+                      borderColor: '#0056b3',
+                      backgroundColor: 'rgba(0, 123, 255, 0.04)',
+                    }
+                  }}
                 >
                   Browse News
                 </Button>
@@ -176,6 +185,14 @@ const Dashboard: React.FC = () => {
                   variant="outlined" 
                   fullWidth
                   onClick={() => navigate('/profile')}
+                  sx={{
+                    borderColor: '#007bff',
+                    color: '#007bff',
+                    '&:hover': {
+                      borderColor: '#0056b3',
+                      backgroundColor: 'rgba(0, 123, 255, 0.04)',
+                    }
+                  }}
                 >
                   View Profile
                 </Button>
@@ -183,6 +200,14 @@ const Dashboard: React.FC = () => {
                   variant="outlined" 
                   fullWidth
                   onClick={() => navigate('/profile')}
+                  sx={{
+                    borderColor: '#007bff',
+                    color: '#007bff',
+                    '&:hover': {
+                      borderColor: '#0056b3',
+                      backgroundColor: 'rgba(0, 123, 255, 0.04)',
+                    }
+                  }}
                 >
                   Reading History
                 </Button>
