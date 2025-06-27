@@ -82,12 +82,21 @@ const newsSlice = createSlice({
   reducers: {
     
     // ========================================================================
-    // ✅ EXISTING ACTIONS (Keep unchanged)
+    // ✅ EXISTING ACTIONS (Enhanced with Like Status Syncing)
     // ========================================================================
+    
+    /**
+     * Set current article index and sync liked status
+     */
     
     setCurrentIndex: (state, action: PayloadAction<number>) => {
       state.currentIndex = action.payload;
       state.currentArticle = state.allArticles[action.payload] || null;
+      
+      // ✅ Ensure current article has correct liked status
+      if (state.currentArticle) {
+        state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+      }
     },
     
     navigateNext: (state) => {
@@ -121,6 +130,11 @@ const newsSlice = createSlice({
         state.currentIndex += 1;
         state.currentArticle = state.allArticles[state.currentIndex];
         
+        // ✅ Ensure current article has correct liked status
+        if (state.currentArticle) {
+          state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+        }
+        
         console.log(`📰 Navigated to article ${state.currentIndex + 1}: ${state.currentArticle?.title}`);
       }
     },
@@ -151,6 +165,11 @@ const newsSlice = createSlice({
       if (state.currentIndex > 0) {
         state.currentIndex -= 1;
         state.currentArticle = state.allArticles[state.currentIndex];
+        
+        // ✅ Ensure current article has correct liked status
+        if (state.currentArticle) {
+          state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+        }
       }
     },
     
@@ -158,16 +177,35 @@ const newsSlice = createSlice({
       state.isNavigating = action.payload;
     },
     
+    /**
+     * Set all articles and sync liked status from Redux state
+     */
     setAllArticles: (state, action: PayloadAction<EnhancedArticle[]>) => {
       state.allArticles = action.payload;
+      
+      // ✅ Sync liked status with articles when they are loaded
+      state.allArticles.forEach(article => {
+        article.isLiked = state.likedArticleIds.has(article.article_id);
+      });
+      
       if (state.currentIndex < action.payload.length) {
-        state.currentArticle = action.payload[state.currentIndex];
+        state.currentArticle = state.allArticles[state.currentIndex];
       }
     },
+    
+    /**
+     * Append new articles and sync liked status
+     */
     
     appendArticles: (state, action: PayloadAction<EnhancedArticle[]>) => {
       const existingIds = new Set(state.allArticles.map(a => a.article_id));
       const newArticles = action.payload.filter(a => !existingIds.has(a.article_id));
+      
+      // ✅ Sync liked status with new articles
+      newArticles.forEach(article => {
+        article.isLiked = state.likedArticleIds.has(article.article_id);
+      });
+      
       state.allArticles = [...state.allArticles, ...newArticles];
     },
     
@@ -376,7 +414,23 @@ const newsSlice = createSlice({
     setLikedArticles: (state, action: PayloadAction<string[]>) => {
       state.likedArticleIds = new Set(action.payload);
       
-      // Update articles in allArticles array
+      // Sync liked status across all articles using the helper function
+      // Update all articles
+      state.allArticles.forEach(article => {
+        article.isLiked = state.likedArticleIds.has(article.article_id);
+      });
+      
+      // Update current article
+      if (state.currentArticle) {
+        state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+      }
+    },
+    /**
+     * Sync liked status across all articles and current article
+     * Useful after bulk updates or state restoration
+     */
+    syncLikedStatus: (state) => {
+      // Update all articles
       state.allArticles.forEach(article => {
         article.isLiked = state.likedArticleIds.has(article.article_id);
       });
@@ -419,6 +473,7 @@ export const {
   processInsertionQueue,
   clearPendingSimilarRequests,
   setLikedArticles,
+  syncLikedStatus,
 } = newsSlice.actions;
 
 // Export reducer

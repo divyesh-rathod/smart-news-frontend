@@ -1,9 +1,12 @@
-
+// src/types/articleTypes.ts
+// ============================================================================
+// ORIGINAL API TYPES (UNCHANGED - Direct from Backend)
+// ============================================================================
 
 export interface Article {
   article_id: string;
   cleaned_text: string;
-  category_1: string | null;
+  category_1: string[];
   category_2: string | null;
   processed_at: string;
   pub_date: string;
@@ -20,9 +23,11 @@ export interface ArticlesResponse {
 
 export interface ArticleScore {
   article_id: string;
+  title: string;
+  link: string;
   cleaned_text: string;
-  category_1: string | null;
-  category_2: string | null;
+  category_1: string[] ;
+  category_2: string ;
   score: number;
 }
 
@@ -33,7 +38,9 @@ export interface ToggleLikeResponse {
   similar: ArticleScore[];
 }
 
-
+// ============================================================================
+// FRONTEND ENHANCEMENT TYPES (NEW - For Like Feature)
+// ============================================================================
 
 /**
  * Enhanced Article with frontend-only fields for like functionality
@@ -87,14 +94,22 @@ export type QueueOperation =
   | { type: 'MARK_LIKED'; payload: { articleId: string; isLiked: boolean } }
   | { type: 'UPDATE_POSITION'; payload: { newIndex: number } };
 
+// ============================================================================
+// UTILITY TYPES FOR TRANSFORMATIONS
+// ============================================================================
 
+/**
+ * Transform API Article to Enhanced Article
+ */
 export type ArticleTransformer = (article: Article, enhancements?: {
   isLiked?: boolean;
   isSimilar?: boolean;
   sourceArticleId?: string;
 }) => EnhancedArticle;
 
-
+/**
+ * Transform API ArticleScore to Enhanced Article (for similar articles)
+ */
 export type ArticleScoreTransformer = (
   articleScore: ArticleScore, 
   sourceArticleId: string
