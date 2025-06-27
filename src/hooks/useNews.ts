@@ -89,7 +89,7 @@ export const useNews = () => {
           console.error('Failed to auto-mark article as read:', error);
         }
       }
-    }, 10000); // 10 seconds
+    }, 5000); // 10 seconds
 
   }, [markAsRead]);
 
@@ -108,7 +108,7 @@ export const useNews = () => {
       
       const timeSpent = Date.now() - startTimeRef.current;
       
-      if (timeSpent >= 10000) { // 10 seconds
+      if (timeSpent >= 5000) { // 10 seconds
         const articleId = currentArticleIdRef.current;
         markAsRead(articleId)
           .unwrap()
@@ -304,7 +304,7 @@ export const useNews = () => {
         !hasMarkedAsReadRef.current.has(currentArticle.article_id)) {
       
       const timeAlreadySpent = Date.now() - startTimeRef.current;
-      const remainingTime = 10000 - timeAlreadySpent;
+      const remainingTime = 5000 - timeAlreadySpent;
       
       if (remainingTime > 0) {
         readTimerRef.current = setTimeout(async () => {
