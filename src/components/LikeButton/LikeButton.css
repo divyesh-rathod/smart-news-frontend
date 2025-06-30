@@ -1,0 +1,406 @@
+/* src/components/LikeButton/LikeButton.css */
+
+/* ============================================================================
+   BASE LIKE BUTTON STYLES
+   ============================================================================ */
+
+.like-button-component {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    outline: none;
+    user-select: none;
+    vertical-align: middle;
+    overflow: hidden;
+}
+
+/* ============================================================================
+     SIZE VARIANTS
+     ============================================================================ */
+
+/* Small size */
+.like-button-small {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    gap: 4px;
+}
+
+.like-button-small .like-icon {
+    font-size: 14px;
+}
+
+.like-button-small .like-count {
+    padding: 1px 4px;
+    font-size: 9px;
+}
+
+/* Medium size (default) */
+.like-button-medium {
+    padding: 10px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    gap: 6px;
+}
+
+.like-button-medium .like-icon {
+    font-size: 16px;
+}
+
+.like-button-medium .like-count {
+    padding: 2px 6px;
+    font-size: 10px;
+}
+
+/* Large size */
+.like-button-large {
+    padding: 14px 24px;
+    font-size: 16px;
+    border-radius: 12px;
+    gap: 10px;
+}
+
+.like-button-large .like-icon {
+    font-size: 20px;
+}
+
+.like-button-large .like-count {
+    padding: 3px 8px;
+    font-size: 11px;
+}
+
+/* ============================================================================
+     STYLE VARIANTS
+     ============================================================================ */
+
+/* Default variant */
+.like-button-default {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 2px solid #dee2e6;
+    color: #495057;
+}
+
+.like-button-default:hover:not(.disabled):not(.loading) {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-color: #adb5bd;
+    transform: translateY(-2px);
+}
+
+/* Minimal variant */
+.like-button-minimal {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #6c757d;
+    padding: 4px 8px;
+}
+
+.like-button-minimal:hover:not(.disabled):not(.loading) {
+    background: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+/* Pill variant */
+.like-button-pill {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border: 2px solid #dee2e6;
+    color: #495057;
+    border-radius: 50px;
+}
+
+.like-button-pill:hover:not(.disabled):not(.loading) {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    border-color: #adb5bd;
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* ============================================================================
+     LIKED STATE (BLUE THEME)
+     ============================================================================ */
+
+.like-button-component.liked {
+    background: linear-gradient(135deg, #007bff, #0056b3) !important;
+    border-color: #0056b3 !important;
+    color: white !important;
+    transform: scale(1.02);
+}
+
+.like-button-component.liked:hover:not(.disabled):not(.loading) {
+    background: linear-gradient(135deg, #0056b3, #004085) !important;
+    transform: translateY(-2px) scale(1.04) !important;
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.like-button-minimal.liked {
+    background: rgba(0, 123, 255, 0.1) !important;
+    border-color: #007bff !important;
+    color: #007bff !important;
+    transform: none;
+}
+
+.like-button-minimal.liked:hover:not(.disabled):not(.loading) {
+    background: rgba(0, 123, 255, 0.2) !important;
+    transform: scale(1.05);
+}
+
+/* ============================================================================
+     LIKE ICON ANIMATIONS
+     ============================================================================ */
+
+.like-icon {
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.liked .like-icon {
+    animation: heartPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes heartPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+/* ============================================================================
+     LIKE TEXT & COUNT
+     ============================================================================ */
+
+.like-text {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.like-count {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.like-button-minimal .like-count {
+    background: rgba(0, 123, 255, 0.15);
+    color: inherit;
+}
+
+/* ============================================================================
+     BUTTON STATES
+     ============================================================================ */
+
+/* Loading state */
+.like-button-component.loading {
+    opacity: 0.8;
+    cursor: wait;
+    pointer-events: none;
+}
+
+.like-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+/* Disabled state */
+.like-button-component.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none !important;
+}
+
+/* ============================================================================
+     ANIMATIONS
+     ============================================================================ */
+
+/* Click animation */
+.like-button-component.animating {
+    animation: likeClick 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes likeClick {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1.02);
+    }
+}
+
+/* Success animation */
+.like-button-component.success-animation {
+    animation: successPulse 2s ease-in-out;
+}
+
+@keyframes successPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgba(0, 123, 255, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.6);
+    }
+}
+
+/* ============================================================================
+     SUCCESS OVERLAY
+     ============================================================================ */
+
+.success-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: inherit;
+    animation: overlaySlide 2s ease-in-out;
+    z-index: 1;
+}
+
+.success-icon {
+    font-size: 14px;
+    animation: sparkle 1s ease-in-out infinite;
+}
+
+.success-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@keyframes overlaySlide {
+    0% {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+
+    20%,
+    80% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(100%);
+    }
+}
+
+@keyframes sparkle {
+
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: rotate(180deg) scale(1.2);
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+     FOCUS STATES (Accessibility)
+     ============================================================================ */
+
+.like-button-component:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.like-button-component:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ============================================================================
+     RESPONSIVE ADJUSTMENTS
+     ============================================================================ */
+
+@media (max-width: 480px) {
+    .like-button-large {
+        padding: 12px 20px;
+        font-size: 15px;
+    }
+
+    .like-button-medium {
+        padding: 8px 14px;
+        font-size: 13px;
+    }
+
+    .success-text {
+        display: none;
+    }
+}
+
+/* ============================================================================
+     HIGH CONTRAST MODE
+     ============================================================================ */
+
+@media (prefers-contrast: high) {
+    .like-button-component {
+        border-width: 3px;
+    }
+
+    .like-button-component.liked {
+        background: #0000ff !important;
+        border-color: #000000 !important;
+    }
+}
+
+/* ============================================================================
+     REDUCED MOTION
+     ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .like-button-component,
+    .like-icon,
+    .success-overlay,
+    .success-icon,
+    .like-spinner {
+        animation: none !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .like-button-component:hover {
+        transform: none !important;
+    } }

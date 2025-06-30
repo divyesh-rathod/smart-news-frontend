@@ -5,6 +5,8 @@ import authReducer from './slices/authSlice';
 import newsReducer from './slices/newsSlice';
 import { authApi } from './api/authApi';
 import { newsApi } from './api/newsApi';
+import { enableMapSet } from 'immer';
+enableMapSet();
 
 export const store = configureStore({
   reducer: {

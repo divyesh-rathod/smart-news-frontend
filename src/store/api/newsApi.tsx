@@ -49,14 +49,14 @@ const transformArticleScoreToEnhanced = (
   const article: Article = {
     article_id: articleScore.article_id,
     cleaned_text: articleScore.cleaned_text,
-    category_1: articleScore.category_1,
-    category_2: articleScore.category_2,
-    processed_at: new Date().toISOString(), // Default value for missing field
-    pub_date: new Date().toISOString(),     // Default value for missing field  
-    title: articleScore.title,              // ✅ Now available from API
-    link: articleScore.link,                // ✅ Now available from API
-    description: articleScore.cleaned_text, // Use cleaned_text as description
-    categories: articleScore.category_1 // Combine categories
+    category_1: articleScore.category_1,        // ✅ Actual categories
+    category_2: articleScore.category_2,        // ✅ Actual description content
+    processed_at: new Date().toISOString(),     // Default value for missing field
+    pub_date: new Date().toISOString(),         // Default value for missing field  
+    title: articleScore.title,                  // ✅ Real title from API
+    link: articleScore.link,                    // ✅ Real Guardian link
+    description: articleScore.cleaned_text,     // Use cleaned_text as original description
+    categories: articleScore.category_1 ? articleScore.category_1 : null, // Use category_1 for categories array
   };
 
   // Return as EnhancedArticle with similar article metadata
