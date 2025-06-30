@@ -211,7 +211,7 @@ export const newsApi = createApi({
       // 🎯 OPTIMISTIC UPDATES - UI responds immediately
       async onQueryStarted({ articleId, userCurrentIndex }, { dispatch, queryFulfilled, getState }) {
         const state = getState() as RootState;
-        const currentlyLiked = state.news.likedArticleIds.has(articleId);
+        const currentlyLiked = state.news.likedArticleIds.includes(articleId);
         const newLikedState = !currentlyLiked;
         
         console.log(`🚀 Starting like toggle for ${articleId}: ${currentlyLiked} → ${newLikedState}`);

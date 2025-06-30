@@ -1,5 +1,5 @@
-// src/components/ArticleViewer/ArticleViewer.tsx
-import React, { useEffect, useState } from 'react';
+// Simple ArticleViewer.tsx - No Infinite Renders
+import React, { useEffect, useState, useRef } from 'react';
 import { useNews } from '../../hooks/useNews';
 import './ArticleViewer.css';
 
@@ -22,100 +22,81 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     isNavigating,
     isMarkingAsRead,
     isTogglingLike,
+    canGoNext,
+    canGoPrevious,
     error,
     goToNext,
     goToPrevious,
-    canGoNext,
-    canGoPrevious,
     markArticleAsRead,
-    toggleArticleLike,
+    toggleLike,
     getCurrentArticleLikeStatus,
     setupKeyboardNavigation,
     pauseReadTimer,
     resumeReadTimer,
-    progress,
+    loadingProgress,
     hasPendingRequests,
-    getPendingRequestsInfo,
   } = useNews();
 
   // ========================================================================
-  // LOCAL STATE FOR UI ENHANCEMENTS
+  // LOCAL STATE - SIMPLE
   // ========================================================================
   
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [showSimilarArticlesNotification, setShowSimilarArticlesNotification] = useState(false);
 
   // ========================================================================
-  // KEYBOARD NAVIGATION SETUP
+  // KEYBOARD NAVIGATION - SIMPLE SETUP
   // ========================================================================
   
   useEffect(() => {
     const cleanup = setupKeyboardNavigation();
     return cleanup;
-  }, [setupKeyboardNavigation]);
+  }, []); // Empty dependency array - setup once
 
   // ========================================================================
-  // PAGE VISIBILITY HANDLING (Pause/Resume timer)
+  // PAGE VISIBILITY - SIMPLE
   // ========================================================================
   
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         pauseReadTimer();
-        console.log('🔄 Tab hidden - pausing read timer');
       } else {
         resumeReadTimer();
-        console.log('✅ Tab visible - resuming read timer');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [pauseReadTimer, resumeReadTimer]);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []); // Empty dependency array
 
   // ========================================================================
-  // ARTICLE CHANGE NOTIFICATION
+  // ARTICLE CHANGE NOTIFICATION - SIMPLE
   // ========================================================================
   
+  const lastNotifiedRef = useRef<string | null>(null);
+  
   useEffect(() => {
-    if (currentArticle && onArticleChange) {
+    if (currentArticle && onArticleChange && lastNotifiedRef.current !== currentArticle.article_id) {
+      lastNotifiedRef.current = currentArticle.article_id;
       onArticleChange(currentArticle.article_id, currentIndex);
     }
-  }, [currentArticle, currentIndex, onArticleChange]);
+  }, [currentArticle?.article_id, currentIndex, onArticleChange]);
 
   // ========================================================================
-  // SIMILAR ARTICLES NOTIFICATION
-  // ========================================================================
-  
-  useEffect(() => {
-    if (hasPendingRequests) {
-      const pendingInfo = getPendingRequestsInfo();
-      console.log(`🎯 ${pendingInfo.count} similar article requests pending...`);
-      
-      setShowSimilarArticlesNotification(true);
-      setTimeout(() => setShowSimilarArticlesNotification(false), 5000);
-    }
-  }, [hasPendingRequests, getPendingRequestsInfo]);
-
-  // ========================================================================
-  // EVENT HANDLERS
+  // SIMPLE EVENT HANDLERS
   // ========================================================================
   
   const handleLikeClick = async () => {
-    if (!currentArticle) return;
+    if (!currentArticle || isTogglingLike) return;
+    
+    setShowLikeAnimation(true);
     
     try {
-      setShowLikeAnimation(true);
+      const result = await toggleLike();
       
-      const result = await toggleArticleLike();
-      
-      if (result?.liked && result?.top5?.length > 0) {
+      if (result && result.liked && result.top5 && result.top5.length > 0) {
         console.log(`🎉 Liked! ${result.top5.length} similar articles incoming...`);
-        
-        // Show notification that similar articles are being processed
         setShowSimilarArticlesNotification(true);
         setTimeout(() => setShowSimilarArticlesNotification(false), 4000);
       }
@@ -136,14 +117,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     }
   };
 
-  const handleNextClick = () => {
-    goToNext();
-  };
-
-  const handlePreviousClick = () => {
-    goToPrevious();
-  };
-
   // ========================================================================
   // UTILITY FUNCTIONS
   // ========================================================================
@@ -159,8 +132,28 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     });
   };
 
-  const formatProgress = () => {
-    return `${currentIndex + 1} of ${totalArticles}`;
+  const renderCategories = () => {
+    if (!currentArticle?.categories) return null;
+    
+    let categoryArray: string[] = [];
+    
+    if (Array.isArray(currentArticle.categories)) {
+      categoryArray = currentArticle.categories;
+    } else if (typeof currentArticle.categories === 'string') {
+      categoryArray = [currentArticle.categories];
+    } else if (currentArticle.category_1) {
+      categoryArray = [String(currentArticle.category_1)];
+    }
+    
+    return categoryArray.length > 0 && (
+      <div className="article-categories">
+        {categoryArray.slice(0, 4).map((category, index) => (
+          <span key={index} className="category-tag">
+            {category}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   // ========================================================================
@@ -187,11 +180,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
       <div className="article-viewer-container">
         <div className="article-error">
           <h2>Unable to Load Articles</h2>
-          <p>
-            {typeof error === 'object' && 'message' in error 
-              ? error.message 
-              : 'Something went wrong while loading your news.'}
-          </p>
+          <p>Something went wrong while loading your news.</p>
           <button 
             className="retry-button"
             onClick={() => window.location.reload()}
@@ -212,7 +201,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
       <div className="article-viewer-container">
         <div className="article-empty">
           <h2>No More Articles</h2>
-          <p>You're all caught up! Check back later for more news.</p>
+          <p>You're all caught up! Check back later for fresh content.</p>
           <button 
             className="refresh-button"
             onClick={() => window.location.reload()}
@@ -224,47 +213,43 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     );
   }
 
-  // ========================================================================
-  // GET CURRENT ARTICLE LIKE STATUS
-  // ========================================================================
-  
-  const { isLiked, isLoading: likeLoading } = getCurrentArticleLikeStatus();
+  const { isLiked: currentlyLiked } = getCurrentArticleLikeStatus();
+  const progressValue = loadingProgress();
 
-  // ========================================================================
-  // MAIN RENDER
-  // ========================================================================
-  
   return (
     <div className="article-viewer-container">
       
-      {/* Progress Bar */}
+      {/* Simple Progress Bar */}
       <div className="progress-container">
         <div className="progress-bar">
           <div 
             className="progress-fill" 
-            style={{ width: `${progress}%` }}
-          ></div>
+            style={{ width: `${progressValue.progress}%` }}
+          />
         </div>
-        <div className="progress-text">{formatProgress()}</div>
+        <div className="progress-text">
+          <span>Article {currentIndex + 1} of {totalArticles}</span>
+          {progressValue.isLoading && (
+            <div className="loading-indicator">
+              <div className="loading-spinner"></div>
+              <span>{progressValue.message}</span>
+            </div>
+          )}
+          {hasPendingRequests && (
+            <div className="loading-indicator">
+              <span>🎯 Similar articles loading...</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Similar Articles Notification */}
-      {showSimilarArticlesNotification && (
-        <div className="similar-articles-notification">
-          <span className="notification-icon">🎯</span>
-          <span>Finding similar articles you might like...</span>
-          <div className="notification-spinner"></div>
-        </div>
-      )}
-
-      {/* Navigation Header */}
+      {/* Simple Navigation Header */}
       <div className="navigation-header">
         <div className="nav-controls">
           <button
-            className={`nav-button prev-button ${!canGoPrevious ? 'disabled' : ''}`}
-            onClick={handlePreviousClick}
+            className={`nav-button ${!canGoPrevious ? 'disabled' : ''}`}
+            onClick={goToPrevious}
             disabled={!canGoPrevious || isNavigating}
-            aria-label="Previous article"
             title="Previous article (Left arrow or H)"
           >
             ← Previous
@@ -272,15 +257,14 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
           
           <div className="article-counter">
             <span className="current-number">{currentIndex + 1}</span>
-            <span className="separator">/</span>
+            <span className="separator">of</span>
             <span className="total-number">{totalArticles}</span>
           </div>
           
           <button
-            className={`nav-button next-button ${!canGoNext ? 'disabled' : ''}`}
-            onClick={handleNextClick}
+            className={`nav-button ${!canGoNext ? 'disabled' : ''}`}
+            onClick={goToNext}
             disabled={!canGoNext || isNavigating}
-            aria-label="Next article"
             title="Next article (Right arrow or L)"
           >
             Next →
@@ -309,17 +293,8 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
               {formatDate(currentArticle.pub_date)}
             </time>
             
-            {currentArticle.categories && currentArticle.categories.length > 0 && (
-              <div className="article-categories">
-                {currentArticle.categories.slice(0, 4).map((category, index) => (
-                  <span key={index} className="category-tag">
-                    {category}
-                  </span>
-                ))}
-              </div>
-            )}
+            {renderCategories()}
 
-            {/* Similar Article Badge */}
             {currentArticle.isSimilar && (
               <div className="similar-badge">
                 <span className="similar-icon">💡</span>
@@ -362,60 +337,86 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
               disabled={isMarkingAsRead}
               title="Mark as read (R key)"
             >
-              {isMarkingAsRead ? (
-                <>
-                  <span className="button-spinner"></span>
-                  Marking...
-                </>
-              ) : (
-                <>
-                  <span className="read-icon">✓</span>
-                  Mark as Read
-                </>
-              )}
+              {isMarkingAsRead ? 'Marking...' : 'Mark as Read'}
             </button>
           </div>
-          
-          {/* Like Button */}
+
+          {/* Simple Like Section */}
           {showLikeButton && (
-            <div className="secondary-actions">
+            <div className="like-section">
+              <h3>Enjoying this article?</h3>
               <button
-                className={`like-button ${isLiked ? 'liked' : ''} ${showLikeAnimation ? 'animate' : ''}`}
+                className={`like-button ${currentlyLiked ? 'liked' : ''} ${showLikeAnimation ? 'animating' : ''}`}
                 onClick={handleLikeClick}
-                disabled={likeLoading || isTogglingLike}
-                title={isLiked ? 'Unlike this article (F key)' : 'Like this article (F key)'}
+                disabled={isTogglingLike}
+                title="Like article (F key or Space)"
+                style={{
+                  background: currentlyLiked 
+                    ? 'linear-gradient(135deg, #007bff, #0056b3)' 
+                    : 'linear-gradient(135deg, #f8f9fa, #e9ecef)',
+                  color: currentlyLiked ? 'white' : '#495057',
+                  border: `2px solid ${currentlyLiked ? '#0056b3' : '#dee2e6'}`,
+                  padding: '16px 32px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: isTogglingLike ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.25s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  justifyContent: 'center'
+                }}
               >
-                {likeLoading || isTogglingLike ? (
+                {isTogglingLike ? (
                   <>
-                    <span className="button-spinner"></span>
-                    <span className="like-text">Processing...</span>
+                    <div className="loading-spinner"></div>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <>
-                    <span className={`like-icon ${isLiked ? 'liked' : ''}`}>
-                      {isLiked ? '💙' : '🤍'}
-                    </span>
-                    <span className="like-text">
-                      {isLiked ? 'Liked' : 'Like'}
-                    </span>
-                    {isLiked && (
-                      <span className="like-count">+5 similar</span>
-                    )}
+                    <span>{currentlyLiked ? '❤️' : '🤍'}</span>
+                    <span>{currentlyLiked ? 'Liked!' : 'Like Article'}</span>
                   </>
                 )}
               </button>
+              <p style={{ marginTop: '12px', fontSize: '14px', color: '#6c757d', textAlign: 'center' }}>
+                {currentlyLiked 
+                  ? 'Thanks! We\'ll find similar articles for you.' 
+                  : 'Help us learn your preferences and discover similar content.'
+                }
+              </p>
             </div>
           )}
         </div>
       </article>
 
-      {/* Keyboard Shortcuts Help */}
+      {/* Simple Keyboard Shortcuts */}
       <div className="keyboard-shortcuts">
-        <small>
-          <strong>Shortcuts:</strong> 
-          ← / H: Previous | → / L: Next | R: Mark Read | F: Like | Space: Like
-        </small>
+        <h4>Keyboard Shortcuts</h4>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px' }}>
+          <span className="shortcut-item">
+            <span className="shortcut-key">←/H</span> Previous
+          </span>
+          <span className="shortcut-item">
+            <span className="shortcut-key">→/L</span> Next
+          </span>
+          <span className="shortcut-item">
+            <span className="shortcut-key">R</span> Mark Read
+          </span>
+          <span className="shortcut-item">
+            <span className="shortcut-key">F/Space</span> Like
+          </span>
+        </div>
       </div>
+
+      {/* Similar Articles Notification */}
+      {showSimilarArticlesNotification && (
+        <div className="similar-articles-notification">
+          <span className="notification-icon">🎉</span>
+          <span>Great choice! Similar articles are being prepared for you...</span>
+        </div>
+      )}
     </div>
   );
 };
