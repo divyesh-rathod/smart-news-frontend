@@ -1,5 +1,5 @@
 // src/components/ArticleViewer/ArticleViewer.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNews } from '../../hooks/useNews';
 import './ArticleViewer.css';
 
@@ -11,7 +11,7 @@ interface ArticleViewerProps {
 
 const ArticleViewer: React.FC<ArticleViewerProps> = ({
   onArticleChange,
-  showLikeButton = false,
+  showLikeButton = true,
   autoMarkAsRead = false
 }) => {
   const {
@@ -29,29 +29,43 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     canGoPrevious,
     markArticleAsRead,
     toggleArticleLike,
+    getCurrentArticleLikeStatus,
     setupKeyboardNavigation,
     pauseReadTimer,
     resumeReadTimer,
     progress,
+    hasPendingRequests,
+    getPendingRequestsInfo,
   } = useNews();
 
-  // Setup keyboard navigation
+  // ========================================================================
+  // LOCAL STATE FOR UI ENHANCEMENTS
+  // ========================================================================
+  
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [showSimilarArticlesNotification, setShowSimilarArticlesNotification] = useState(false);
+
+  // ========================================================================
+  // KEYBOARD NAVIGATION SETUP
+  // ========================================================================
+  
   useEffect(() => {
     const cleanup = setupKeyboardNavigation();
     return cleanup;
   }, [setupKeyboardNavigation]);
 
-  // Handle page visibility changes (pause/resume timer when switching tabs)
+  // ========================================================================
+  // PAGE VISIBILITY HANDLING (Pause/Resume timer)
+  // ========================================================================
+  
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // User switched away from tab - pause timer
         pauseReadTimer();
-        console.log('Tab hidden - pausing read timer');
+        console.log('🔄 Tab hidden - pausing read timer');
       } else {
-        // User came back to tab - resume timer
         resumeReadTimer();
-        console.log('Tab visible - resuming read timer');
+        console.log('✅ Tab visible - resuming read timer');
       }
     };
 
@@ -62,14 +76,78 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     };
   }, [pauseReadTimer, resumeReadTimer]);
 
-  // Notify parent component of article changes
+  // ========================================================================
+  // ARTICLE CHANGE NOTIFICATION
+  // ========================================================================
+  
   useEffect(() => {
     if (currentArticle && onArticleChange) {
       onArticleChange(currentArticle.article_id, currentIndex);
     }
   }, [currentArticle, currentIndex, onArticleChange]);
 
-  // Format date function
+  // ========================================================================
+  // SIMILAR ARTICLES NOTIFICATION
+  // ========================================================================
+  
+  useEffect(() => {
+    if (hasPendingRequests) {
+      const pendingInfo = getPendingRequestsInfo();
+      console.log(`🎯 ${pendingInfo.count} similar article requests pending...`);
+      
+      setShowSimilarArticlesNotification(true);
+      setTimeout(() => setShowSimilarArticlesNotification(false), 5000);
+    }
+  }, [hasPendingRequests, getPendingRequestsInfo]);
+
+  // ========================================================================
+  // EVENT HANDLERS
+  // ========================================================================
+  
+  const handleLikeClick = async () => {
+    if (!currentArticle) return;
+    
+    try {
+      setShowLikeAnimation(true);
+      
+      const result = await toggleArticleLike();
+      
+      if (result?.liked && result?.top5?.length > 0) {
+        console.log(`🎉 Liked! ${result.top5.length} similar articles incoming...`);
+        
+        // Show notification that similar articles are being processed
+        setShowSimilarArticlesNotification(true);
+        setTimeout(() => setShowSimilarArticlesNotification(false), 4000);
+      }
+      
+    } catch (error) {
+      console.error('❌ Like failed:', error);
+    } finally {
+      setTimeout(() => setShowLikeAnimation(false), 500);
+    }
+  };
+
+  const handleMarkAsRead = () => {
+    if (!currentArticle) return;
+    
+    markArticleAsRead();
+    if (autoMarkAsRead && canGoNext) {
+      setTimeout(() => goToNext(), 500);
+    }
+  };
+
+  const handleNextClick = () => {
+    goToNext();
+  };
+
+  const handlePreviousClick = () => {
+    goToPrevious();
+  };
+
+  // ========================================================================
+  // UTILITY FUNCTIONS
+  // ========================================================================
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -81,100 +159,139 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     });
   };
 
-  // Handle like button click
-  const handleLikeClick = async () => {
-    try {
-      const result = await toggleArticleLike();
-      if (result) {
-        console.log('Like result:', result);
-        // You can show recommendations from result.top5 and result.similar
-      }
-    } catch (error) {
-      console.error('Failed to like article:', error);
-    }
+  const formatProgress = () => {
+    return `${currentIndex + 1} of ${totalArticles}`;
   };
 
-  // Handle read button click
-  const handleMarkAsRead = () => {
-    markArticleAsRead();
-    if (autoMarkAsRead && canGoNext) {
-      setTimeout(() => goToNext(), 500);
-    }
-  };
-
-  // Loading state
+  // ========================================================================
+  // LOADING STATE
+  // ========================================================================
+  
   if (isInitialLoading) {
     return (
       <div className="article-viewer-container">
         <div className="article-loading">
           <div className="loading-spinner"></div>
-          <p>Loading articles...</p>
+          <p>Loading your personalized news...</p>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // ========================================================================
+  // ERROR STATE
+  // ========================================================================
+  
   if (error) {
     return (
       <div className="article-viewer-container">
-        <div className="article-empty">
-          <h2>Error Loading Articles</h2>
+        <div className="article-error">
+          <h2>Unable to Load Articles</h2>
           <p>
             {typeof error === 'object' && 'message' in error 
               ? error.message 
-              : 'Failed to load articles. Please try again.'}
+              : 'Something went wrong while loading your news.'}
           </p>
+          <button 
+            className="retry-button"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
-  // No articles state
+  // ========================================================================
+  // NO ARTICLES STATE
+  // ========================================================================
+  
   if (!currentArticle) {
     return (
       <div className="article-viewer-container">
         <div className="article-empty">
-          <h2>No articles available</h2>
-          <p>Check back later for new content.</p>
+          <h2>No More Articles</h2>
+          <p>You're all caught up! Check back later for more news.</p>
+          <button 
+            className="refresh-button"
+            onClick={() => window.location.reload()}
+          >
+            Refresh
+          </button>
         </div>
       </div>
     );
   }
 
+  // ========================================================================
+  // GET CURRENT ARTICLE LIKE STATUS
+  // ========================================================================
+  
+  const { isLiked, isLoading: likeLoading } = getCurrentArticleLikeStatus();
+
+  // ========================================================================
+  // MAIN RENDER
+  // ========================================================================
+  
   return (
     <div className="article-viewer-container">
-      {/* Navigation Header */}
-      <div className="article-viewer-header">
-        <div className="article-counter">
-          <span className="current-article">{currentIndex + 1}</span>
-          <span className="article-separator">of</span>
-          <span className="total-articles">{totalArticles}</span>
+      
+      {/* Progress Bar */}
+      <div className="progress-container">
+        <div className="progress-bar">
+          <div 
+            className="progress-fill" 
+            style={{ width: `${progress}%` }}
+          ></div>
         </div>
-        
-        <div className="article-nav-buttons">
+        <div className="progress-text">{formatProgress()}</div>
+      </div>
+
+      {/* Similar Articles Notification */}
+      {showSimilarArticlesNotification && (
+        <div className="similar-articles-notification">
+          <span className="notification-icon">🎯</span>
+          <span>Finding similar articles you might like...</span>
+          <div className="notification-spinner"></div>
+        </div>
+      )}
+
+      {/* Navigation Header */}
+      <div className="navigation-header">
+        <div className="nav-controls">
           <button
             className={`nav-button prev-button ${!canGoPrevious ? 'disabled' : ''}`}
-            onClick={goToPrevious}
+            onClick={handlePreviousClick}
             disabled={!canGoPrevious || isNavigating}
             aria-label="Previous article"
+            title="Previous article (Left arrow or H)"
           >
-            ←
+            ← Previous
           </button>
+          
+          <div className="article-counter">
+            <span className="current-number">{currentIndex + 1}</span>
+            <span className="separator">/</span>
+            <span className="total-number">{totalArticles}</span>
+          </div>
           
           <button
             className={`nav-button next-button ${!canGoNext ? 'disabled' : ''}`}
-            onClick={goToNext}
+            onClick={handleNextClick}
             disabled={!canGoNext || isNavigating}
             aria-label="Next article"
+            title="Next article (Right arrow or L)"
           >
-            →
+            Next →
           </button>
         </div>
       </div>
 
       {/* Article Content */}
       <article className={`article-content ${isNavigating ? 'transitioning' : ''}`}>
+        
+        {/* Article Header */}
         <header className="article-header">
           <h1 className="article-title">
             <a 
@@ -201,64 +318,103 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
                 ))}
               </div>
             )}
+
+            {/* Similar Article Badge */}
+            {currentArticle.isSimilar && (
+              <div className="similar-badge">
+                <span className="similar-icon">💡</span>
+                <span>Recommended for you</span>
+              </div>
+            )}
           </div>
         </header>
 
+        {/* Article Body */}
         <div className="article-body">
           {currentArticle.description && (
             <div className="article-description">
-              <p>{currentArticle.category_2}</p>
+              <p>{currentArticle.description}</p>
             </div>
           )}
           
-          <div className="article-actions">
+          {currentArticle.category_2 && (
+            <div className="article-summary">
+              <p>{currentArticle.category_2}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Article Actions */}
+        <div className="article-actions">
+          <div className="primary-actions">
             <a 
               href={currentArticle.link}
               target="_blank"
               rel="noopener noreferrer"
               className="read-full-article-btn"
             >
-              Read Full Article on Guardian
+              Read Full Article
             </a>
             
-            {/* Additional action buttons */}
-            <div className="article-action-buttons">
-              <button
-                className="mark-read-btn"
-                onClick={handleMarkAsRead}
-                disabled={isMarkingAsRead}
-              >
-                {isMarkingAsRead ? 'Marking...' : 'Mark as Read'}
-              </button>
-              
-              {showLikeButton && (
-                <button
-                  className="like-btn"
-                  onClick={handleLikeClick}
-                  disabled={isTogglingLike}
-                >
-                  {isTogglingLike ? 'Liking...' : '❤️ Like'}
-                </button>
+            <button
+              className="mark-read-btn"
+              onClick={handleMarkAsRead}
+              disabled={isMarkingAsRead}
+              title="Mark as read (R key)"
+            >
+              {isMarkingAsRead ? (
+                <>
+                  <span className="button-spinner"></span>
+                  Marking...
+                </>
+              ) : (
+                <>
+                  <span className="read-icon">✓</span>
+                  Mark as Read
+                </>
               )}
-            </div>
+            </button>
           </div>
+          
+          {/* Like Button */}
+          {showLikeButton && (
+            <div className="secondary-actions">
+              <button
+                className={`like-button ${isLiked ? 'liked' : ''} ${showLikeAnimation ? 'animate' : ''}`}
+                onClick={handleLikeClick}
+                disabled={likeLoading || isTogglingLike}
+                title={isLiked ? 'Unlike this article (F key)' : 'Like this article (F key)'}
+              >
+                {likeLoading || isTogglingLike ? (
+                  <>
+                    <span className="button-spinner"></span>
+                    <span className="like-text">Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`like-icon ${isLiked ? 'liked' : ''}`}>
+                      {isLiked ? '💙' : '🤍'}
+                    </span>
+                    <span className="like-text">
+                      {isLiked ? 'Liked' : 'Like'}
+                    </span>
+                    {isLiked && (
+                      <span className="like-count">+5 similar</span>
+                    )}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </article>
 
-      {/* Progress Indicator */}
-      <div className="article-progress">
-        <div 
-          className="progress-bar"
-          style={{ width: `${progress}%` }}
-        ></div>
-      </div>
-
-      {/* Keyboard Instructions with Auto-Read Info */}
-      <div className="keyboard-hint">
-        <p>
-          Use ← → arrow keys to navigate • Press R to mark as read<br />
-          <small>📖 Articles auto-mark as read after 10 seconds</small>
-        </p>
+      {/* Keyboard Shortcuts Help */}
+      <div className="keyboard-shortcuts">
+        <small>
+          <strong>Shortcuts:</strong> 
+          ← / H: Previous | → / L: Next | R: Mark Read | F: Like | Space: Like
+        </small>
       </div>
     </div>
   );
