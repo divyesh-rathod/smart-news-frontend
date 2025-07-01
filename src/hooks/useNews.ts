@@ -1,4 +1,4 @@
-// src/hooks/useNews.ts
+// Complete Solution - useNews.ts with Immutable Similar Articles
 import { useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
@@ -15,12 +15,6 @@ import {
   setAllArticles,
   appendArticles,
   setNextCursor,
-  startLikeToggle,
-  completeLikeToggle,
-  insertSimilarArticles,
-  queueSimilarArticles,
-  processInsertionQueue,
-  syncLikedStatus,
   selectNews,
   selectCurrentArticle,
   selectCurrentIndex,
@@ -28,51 +22,34 @@ import {
   selectHasMoreArticles,
   selectNextCursor,
   selectLikedArticleIds,
-  selectIsArticleLiked,
-  selectIsLikeLoading,
-  selectPendingSimilarRequests,
-  selectHasPendingRequests,
 } from '../store/slices/newsSlice';
-import type { EnhancedArticle, ToggleLikeResponse } from '../types/articleTypes';
+import type { ToggleLikeResponse, EnhancedArticle } from '../types/articleTypes';
 
-// ============================================================================
-// ENHANCED useNews HOOK
-// ============================================================================
+// 🎯 Similar Article Queue Item Type
+interface SimilarArticleRequest {
+  sourceArticleId: string;
+  similarArticles: EnhancedArticle[];
+  requestTime: number;
+  insertAfterIndex: number;
+}
 
 export const useNews = () => {
   const dispatch = useAppDispatch();
   
   // ========================================================================
-  // REDUX SELECTORS - Article State
+  // REDUX SELECTORS - Keep Simple & Working
   // ========================================================================
-  
   const newsState = useAppSelector(selectNews);
   const currentArticle = useAppSelector(selectCurrentArticle);
   const currentIndex = useAppSelector(selectCurrentIndex);
   const allArticles = useAppSelector(selectAllArticles);
   const hasMoreArticles = useAppSelector(selectHasMoreArticles);
   const nextCursor = useAppSelector(selectNextCursor);
-  
-  // ========================================================================
-  // REDUX SELECTORS - Like State  
-  // ========================================================================
-  
   const likedArticleIds = useAppSelector(selectLikedArticleIds);
-  const hasPendingRequests = useAppSelector(selectHasPendingRequests);
-  const pendingSimilarRequests = useAppSelector(selectPendingSimilarRequests);
-  
-  // Get current article like loading state (hooks must be at top level)
-  const currentArticleLikeLoading = useAppSelector(state => 
-    currentArticle ? selectIsLikeLoading(currentArticle.article_id)(state) : false
-  );
-  
-  // Note: We can't get loading state for arbitrary articles due to React hooks rules
-  // Loading states are only tracked for the current article to avoid performance issues
   
   // ========================================================================
-  // RTK QUERY HOOKS - API Calls
+  // API HOOKS - Keep Working Version
   // ========================================================================
-  
   const {
     data: initialArticlesData,
     isLoading: isInitialLoading,
@@ -93,76 +70,175 @@ export const useNews = () => {
   }] = useToggleArticleLikeMutation();
 
   // ========================================================================
-  // REFS FOR AUTO-READ FUNCTIONALITY
+  // REFS - Keep Working + Add Similar Articles Queue
   // ========================================================================
-  
   const readTimerRef = useRef<number | null>(null);
   const currentArticleIdRef = useRef<string | null>(null);
+  const startTimeRef = useRef<number | null>(null);
   const hasMarkedAsReadRef = useRef<Set<string>>(new Set());
+  
+  // 🆕 Similar Articles Queue - Using Array for Immutability
+  const similarArticlesQueue = useRef<SimilarArticleRequest[]>([]);
 
   // ========================================================================
-  // INITIAL ARTICLES LOADING
+  // 🔧 IMMUTABLE SIMILAR ARTICLES INSERTION
   // ========================================================================
-  
+  const insertSimilarArticlesImmutably = useCallback((request: SimilarArticleRequest) => {
+    const { sourceArticleId, similarArticles, insertAfterIndex } = request;
+    
+    console.log(`🎯 Inserting ${similarArticles.length} similar articles after index ${insertAfterIndex} (source: ${sourceArticleId})`);
+    
+    // 🔧 IMMUTABLE WAY: Create new articles with proper like status
+    const enhancedSimilarArticles: EnhancedArticle[] = similarArticles.map(article => ({
+      ...article, // Spread the original article
+      isSimilar: true, // Mark as similar
+      sourceArticleId: sourceArticleId, // Track source
+      isLiked: likedArticleIds.includes(article.article_id), // Sync like status
+      isLikeLoading: false // Not loading
+    }));
+    
+    // 🔧 IMMUTABLE WAY: Create new articles array (don't mutate existing)
+    const newAllArticles: EnhancedArticle[] = [
+      ...allArticles.slice(0, insertAfterIndex + 1), // Articles before and including insert point
+      ...enhancedSimilarArticles, // Similar articles
+      ...allArticles.slice(insertAfterIndex + 1) // Articles after insert point
+    ];
+    
+    // 🔧 IMMUTABLE WAY: Use Redux dispatch to set new state
+    dispatch(setAllArticles(newAllArticles));
+    
+    console.log(`✅ Inserted ${similarArticles.length} similar articles. Total articles: ${allArticles.length} → ${newAllArticles.length}`);
+  }, [allArticles, likedArticleIds, dispatch]);
+
+  // ========================================================================
+  // 🔧 QUEUE PROCESSING - Process Multiple Requests Safely
+  // ========================================================================
+  const processSimilarArticlesQueue = useCallback(() => {
+    if (similarArticlesQueue.current.length === 0) return;
+    
+    console.log(`🔄 Processing ${similarArticlesQueue.current.length} queued similar article requests`);
+    
+    // Sort by request time (oldest first) to maintain order
+    const sortedQueue = [...similarArticlesQueue.current].sort((a, b) => a.requestTime - b.requestTime);
+    
+    // Process each request
+    let indexOffset = 0; // Track how many articles we've added
+    
+    sortedQueue.forEach((request, queueIndex) => {
+      // Adjust insertion index based on previously inserted articles
+      const adjustedInsertIndex = request.insertAfterIndex + indexOffset;
+      
+      const adjustedRequest: SimilarArticleRequest = {
+        ...request,
+        insertAfterIndex: adjustedInsertIndex
+      };
+      
+      insertSimilarArticlesImmutably(adjustedRequest);
+      
+      // Update offset for next insertions
+      indexOffset += request.similarArticles.length;
+      
+      console.log(`📝 Processed queue item ${queueIndex + 1}/${sortedQueue.length} (offset: ${indexOffset})`);
+    });
+    
+    // Clear the queue
+    similarArticlesQueue.current = [];
+    console.log('✅ Similar articles queue cleared');
+  }, [insertSimilarArticlesImmutably]);
+
+  // ========================================================================
+  // TIMER LOGIC - Keep Working Version
+  // ========================================================================
+  const startReadTimer = useCallback((articleId: string) => {
+    if (readTimerRef.current) {
+      clearTimeout(readTimerRef.current);
+    }
+
+    if (hasMarkedAsReadRef.current.has(articleId)) {
+      return;
+    }
+
+    currentArticleIdRef.current = articleId;
+    startTimeRef.current = Date.now();
+
+    readTimerRef.current = setTimeout(async () => {
+      if (currentArticleIdRef.current === articleId && !hasMarkedAsReadRef.current.has(articleId)) {
+        try {
+          console.log(`⏰ Auto-marking article ${articleId} as read after 10 seconds`);
+          await markAsRead(articleId).unwrap();
+          hasMarkedAsReadRef.current.add(articleId);
+        } catch (error) {
+          console.error('❌ Failed to auto-mark article as read:', error);
+        }
+      }
+    }, 10000);
+
+  }, [markAsRead]);
+
+  const stopReadTimer = useCallback((shouldCheckTime: boolean = false) => {
+    if (readTimerRef.current) {
+      clearTimeout(readTimerRef.current);
+      readTimerRef.current = null;
+    }
+
+    if (shouldCheckTime && 
+        currentArticleIdRef.current && 
+        startTimeRef.current && 
+        !hasMarkedAsReadRef.current.has(currentArticleIdRef.current)) {
+      
+      const timeSpent = Date.now() - startTimeRef.current;
+      
+      if (timeSpent >= 10000) {
+        const articleId = currentArticleIdRef.current;
+        markAsRead(articleId)
+          .unwrap()
+          .then(() => {
+            console.log(`⏰ Auto-marked article ${articleId} as read (spent ${Math.round(timeSpent/1000)}s)`);
+            hasMarkedAsReadRef.current.add(articleId);
+          })
+          .catch((error) => {
+            console.error('❌ Failed to auto-mark article as read on navigation:', error);
+          });
+      }
+    }
+
+    currentArticleIdRef.current = null;
+    startTimeRef.current = null;
+  }, [markAsRead]);
+
+  // ========================================================================
+  // INITIALIZATION - Keep Working Version
+  // ========================================================================
   useEffect(() => {
-    if (initialArticlesData?.results && allArticles.length === 0) {
+    if (initialArticlesData && allArticles.length === 0) {
       console.log('📥 Loading initial articles:', initialArticlesData.results.length);
       dispatch(setAllArticles(initialArticlesData.results));
       dispatch(setNextCursor(initialArticlesData.next_cursor));
     }
   }, [initialArticlesData, allArticles.length, dispatch]);
 
-  // ========================================================================
-  // AUTO-READ TIMER MANAGEMENT
-  // ========================================================================
-  
-  const startReadTimer = useCallback((article: EnhancedArticle, delayMs: number = 30000) => {
-    if (!newsState.autoMarkAsRead) return;
-    if (hasMarkedAsReadRef.current.has(article.article_id)) return;
-    
-    console.log(`⏱️ Starting read timer for ${article.article_id} (${delayMs}ms)`);
-    
-    readTimerRef.current = window.setTimeout(async () => {
-      if (currentArticleIdRef.current === article.article_id) {
-        try {
-          console.log(`✅ Auto-marking ${article.article_id} as read`);
-          await markAsRead(article.article_id).unwrap();
-          hasMarkedAsReadRef.current.add(article.article_id);
-        } catch (error) {
-          console.error('❌ Failed to auto-mark article as read:', error);
-        }
-      }
-    }, delayMs);
-  }, [newsState.autoMarkAsRead, markAsRead]);
-
-  const stopReadTimer = useCallback((shouldMarkAsRead: boolean = false) => {
-    if (readTimerRef.current) {
-      clearTimeout(readTimerRef.current);
-      readTimerRef.current = null;
-      
-      if (shouldMarkAsRead && currentArticle && !hasMarkedAsReadRef.current.has(currentArticle.article_id)) {
-        markArticleAsRead(currentArticle.article_id);
-      }
+  useEffect(() => {
+    if (currentArticle?.article_id) {
+      stopReadTimer(true);
+      startReadTimer(currentArticle.article_id);
     }
-  }, [currentArticle]);
 
-  const pauseReadTimer = useCallback(() => {
-    if (readTimerRef.current) {
-      clearTimeout(readTimerRef.current);
-      readTimerRef.current = null;
-    }
+    return () => {
+      stopReadTimer(false);
+    };
+  }, [currentArticle?.article_id, startReadTimer, stopReadTimer]);
+
+  useEffect(() => {
+    return () => {
+      if (readTimerRef.current) {
+        clearTimeout(readTimerRef.current);
+      }
+    };
   }, []);
 
-  const resumeReadTimer = useCallback(() => {
-    if (currentArticle && newsState.autoMarkAsRead) {
-      startReadTimer(currentArticle, 15000); // Resume with shorter delay
-    }
-  }, [currentArticle, newsState.autoMarkAsRead, startReadTimer]);
-
   // ========================================================================
-  // ARTICLE NAVIGATION (Enhanced with Queue Processing)
+  // NAVIGATION - Keep Working Logic + Add Smart Queue Processing
   // ========================================================================
-  
   const goToNext = useCallback(() => {
     if (newsState.isNavigating) return;
     
@@ -171,14 +247,21 @@ export const useNews = () => {
     dispatch(setIsNavigating(true));
     setTimeout(() => dispatch(setIsNavigating(false)), 300);
     
-    // 🎯 Navigation automatically processes queue in Redux slice
+    // 🔧 PROCESS QUEUE BEFORE NAVIGATION (perfect timing!)
+    if (similarArticlesQueue.current.length > 0) {
+      console.log('🎯 Perfect timing! Processing similar articles queue before navigation');
+      processSimilarArticlesQueue();
+    }
+    
     dispatch(navigateNext());
     
-    // Auto-fetch more articles when near the end
+    // 🎯 KEEP THE WORKING AUTO-FETCH LOGIC
     if (currentIndex >= allArticles.length - 3 && hasMoreArticles && nextCursor) {
+      console.log(`📦 Auto-loading more articles (${allArticles.length - currentIndex - 1} remaining)`);
       fetchMoreArticles({ cursor: nextCursor, limit: 20 })
         .unwrap()
         .then((data) => {
+          console.log('📥 Loading more articles:', data.results.length);
           dispatch(appendArticles(data.results));
           dispatch(setNextCursor(data.next_cursor));
         })
@@ -195,6 +278,7 @@ export const useNews = () => {
     dispatch,
     fetchMoreArticles,
     stopReadTimer,
+    processSimilarArticlesQueue,
   ]);
 
   const goToPrevious = useCallback(() => {
@@ -205,11 +289,16 @@ export const useNews = () => {
     dispatch(setIsNavigating(true));
     setTimeout(() => dispatch(setIsNavigating(false)), 300);
     
-    // 🎯 Navigation automatically processes queue in Redux slice
+    // Also process queue on backward navigation
+    if (similarArticlesQueue.current.length > 0) {
+      console.log('🎯 Processing similar articles queue before backward navigation');
+      processSimilarArticlesQueue();
+    }
+    
     dispatch(navigatePrevious());
-  }, [newsState.isNavigating, dispatch, stopReadTimer]);
+  }, [newsState.isNavigating, dispatch, stopReadTimer, processSimilarArticlesQueue]);
 
-  const goToIndex = useCallback((index: number) => {
+  const goToArticle = useCallback((index: number) => {
     if (index >= 0 && index < allArticles.length) {
       stopReadTimer(true);
       dispatch(setCurrentIndex(index));
@@ -217,78 +306,8 @@ export const useNews = () => {
   }, [allArticles.length, dispatch, stopReadTimer]);
 
   // ========================================================================
-  // LIKE FUNCTIONALITY (New!)
+  // ARTICLE ACTIONS - Keep Working + Enhanced Like with Queueing
   // ========================================================================
-  
-  /**
-   * Toggle like status for an article
-   * Handles optimistic updates, API calls, and similar articles insertion
-   */
-  const toggleArticleLike = useCallback(async (articleId?: string): Promise<ToggleLikeResponse | null> => {
-    const targetArticleId = articleId || currentArticle?.article_id;
-    if (!targetArticleId) {
-      console.warn('⚠️ No article ID provided for like toggle');
-      return null;
-    }
-    
-    const currentlyLiked = likedArticleIds.has(targetArticleId);
-    const newLikedState = !currentlyLiked;
-    
-    console.log(`${newLikedState ? '❤️' : '💔'} Toggling like for ${targetArticleId}: ${currentlyLiked} → ${newLikedState}`);
-    
-    try {
-      // The mutation handles optimistic updates automatically via onQueryStarted
-      const result = await toggleLikeMutation({ 
-        articleId: targetArticleId, 
-        userCurrentIndex: currentIndex 
-      }).unwrap();
-      
-      console.log('✅ Like toggle successful:', result.apiResponse);
-      
-      // Return the API response for components that want to show similar articles
-      return result.apiResponse;
-      
-    } catch (error) {
-      console.error('❌ Like toggle failed:', error);
-      throw error;
-    }
-  }, [currentArticle, likedArticleIds, currentIndex, toggleLikeMutation]);
-
-  /**
-   * Simple check if any article is liked (no loading state)
-   * Use this for bulk operations or when you only need like status
-   */
-  const isArticleLiked = useCallback((articleId: string) => {
-    return likedArticleIds.has(articleId);
-  }, [likedArticleIds]);
-
-  /**
-   * Get like status for a specific article
-   * Note: For performance, this only works reliably for the current article.
-   * For other articles, use the likedArticleIds Set directly.
-   */
-  const getArticleLikeStatus = useCallback((articleId: string) => {
-    return {
-      isLiked: likedArticleIds.has(articleId),
-      isLoading: currentArticle?.article_id === articleId ? currentArticleLikeLoading : false,
-    };
-  }, [likedArticleIds, currentArticle?.article_id, currentArticleLikeLoading]);
-
-  /**
-   * Get like status for current article
-   */
-  const getCurrentArticleLikeStatus = useCallback(() => {
-    if (!currentArticle) return { isLiked: false, isLoading: false };
-    return {
-      isLiked: likedArticleIds.has(currentArticle.article_id),
-      isLoading: currentArticleLikeLoading,
-    };
-  }, [currentArticle, likedArticleIds, currentArticleLikeLoading]);
-
-  // ========================================================================
-  // ARTICLE ACTIONS (Enhanced)
-  // ========================================================================
-  
   const markArticleAsRead = useCallback(async (articleId?: string) => {
     const id = articleId || currentArticle?.article_id;
     if (!id) return;
@@ -309,168 +328,232 @@ export const useNews = () => {
     }
   }, [currentArticle, markAsRead, newsState.autoMarkAsRead, currentIndex, allArticles.length, goToNext, stopReadTimer]);
 
-  // ========================================================================
-  // SIMILAR ARTICLES MANAGEMENT
-  // ========================================================================
-  
-  /**
-   * Manually process queued similar articles (rarely needed)
-   */
-  const processQueuedSimilarArticles = useCallback(() => {
-    console.log('🔄 Manually processing queued similar articles');
-    dispatch(processInsertionQueue());
-  }, [dispatch]);
-
-  /**
-   * Get information about pending similar article requests
-   */
-  const getPendingRequestsInfo = useCallback(() => {
-    return {
-      count: pendingSimilarRequests.size,
-      articleIds: Array.from(pendingSimilarRequests.keys()),
-      hasPending: hasPendingRequests
-    };
-  }, [pendingSimilarRequests, hasPendingRequests]);
-
-  // ========================================================================
-  // KEYBOARD NAVIGATION
-  // ========================================================================
-  
-  const setupKeyboardNavigation = useCallback(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return; // Don't interfere with form inputs
+  // 🔥 ENHANCED LIKE - With Immutable Similar Articles Queueing
+  const toggleLike = useCallback(async (articleId?: string): Promise<ToggleLikeResponse | null> => {
+    const targetArticleId = articleId || currentArticle?.article_id;
+    if (!targetArticleId) {
+      console.warn('⚠️ No article ID provided for like toggle');
+      return null;
+    }
+    
+    const currentlyLiked = likedArticleIds.includes(targetArticleId);
+    console.log(`${!currentlyLiked ? '❤️' : '💔'} Toggling like for ${targetArticleId}: ${currentlyLiked} → ${!currentlyLiked}`);
+    
+    try {
+      const result = await toggleLikeMutation({ 
+        articleId: targetArticleId, 
+        userCurrentIndex: currentIndex 
+      }).unwrap();
+      
+      console.log('✅ Like toggle successful:', result.apiResponse);
+      
+      // 🆕 HANDLE SIMILAR ARTICLES - Add to Queue for Immutable Processing
+      if (result.apiResponse.liked && result.similarArticlesResult?.similarArticles) {
+        const similarArticles = result.similarArticlesResult.similarArticles;
+        console.log(`🎯 Got ${similarArticles.length} similar articles for liked article ${targetArticleId}`);
+        
+        // 🔧 ADD TO QUEUE - Will be processed on next navigation
+        const queueRequest: SimilarArticleRequest = {
+          sourceArticleId: targetArticleId,
+          similarArticles: similarArticles,
+          requestTime: Date.now(),
+          insertAfterIndex: currentIndex // Insert after current position
+        };
+        
+        similarArticlesQueue.current.push(queueRequest);
+        console.log(`📝 Queued ${similarArticles.length} similar articles. Queue size: ${similarArticlesQueue.current.length}`);
+        
+        // 🎯 OPTION: Auto-process queue immediately (for instant gratification)
+        // Uncomment this if you want immediate insertion:
+        // processSimilarArticlesQueue();
       }
       
-      switch (event.key) {
-        case 'ArrowLeft':
-        case 'h':
-          event.preventDefault();
-          goToPrevious();
-          break;
-        case 'ArrowRight':
-        case 'l':
-          event.preventDefault();
-          goToNext();
-          break;
-        case 'r':
-          event.preventDefault();
-          if (currentArticle) markArticleAsRead();
-          break;
-        case 'f':
-        case ' ':
-          event.preventDefault();
-          if (currentArticle) toggleArticleLike();
-          break;
+      return result.apiResponse;
+      
+    } catch (error) {
+      console.error('❌ Like toggle failed:', error);
+      throw error;
+    }
+  }, [currentArticle, likedArticleIds, currentIndex, toggleLikeMutation]);
+
+  // ========================================================================
+  // UTILITIES - Keep Working + Add Queue Management
+  // ========================================================================
+  const setupKeyboardNavigation = useCallback(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if (event.key === 'ArrowLeft' || event.key === 'h') {
+        event.preventDefault();
+        goToPrevious();
+      } else if (event.key === 'ArrowRight' || event.key === 'l') {
+        event.preventDefault();
+        goToNext();
+      } else if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault();
+        markArticleAsRead();
+      } else if (event.key === 'f' || event.key === ' ') {
+        event.preventDefault();
+        toggleLike();
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [goToNext, goToPrevious, markArticleAsRead, toggleArticleLike, currentArticle]);
+    console.log('⌨️ Setting up keyboard navigation');
+    document.addEventListener('keydown', handleKeyPress);
+    return () => {
+      console.log('⌨️ Cleaning up keyboard navigation');  
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [goToNext, goToPrevious, markArticleAsRead, toggleLike]);
 
-  // ========================================================================
-  // UTILITY FUNCTIONS
-  // ========================================================================
-  
   const refreshArticles = useCallback(async () => {
     try {
-      const data = await fetchMoreArticles({ limit: 20, offset: 0 }).unwrap();
+      stopReadTimer(false);
+      
+      const data = await fetchMoreArticles({ limit: 20 }).unwrap();
       dispatch(setAllArticles(data.results));
       dispatch(setNextCursor(data.next_cursor));
       dispatch(setCurrentIndex(0));
+      
+      hasMarkedAsReadRef.current.clear();
+      similarArticlesQueue.current = []; // Clear queue on refresh
     } catch (error) {
       console.error('❌ Failed to refresh articles:', error);
     }
-  }, [fetchMoreArticles, dispatch]);
+  }, [fetchMoreArticles, dispatch, stopReadTimer]);
 
-  // ========================================================================
-  // ARTICLE TIMER EFFECTS
-  // ========================================================================
-  
-  useEffect(() => {
-    if (currentArticle) {
-      currentArticleIdRef.current = currentArticle.article_id;
+  const pauseReadTimer = useCallback(() => {
+    if (readTimerRef.current) {
+      clearTimeout(readTimerRef.current);
+      readTimerRef.current = null;
+    }
+    console.log('⏸️ Pause read timer');
+  }, []);
+
+  const resumeReadTimer = useCallback(() => {
+    if (currentArticle?.article_id && 
+        currentArticleIdRef.current === currentArticle.article_id && 
+        startTimeRef.current && 
+        !hasMarkedAsReadRef.current.has(currentArticle.article_id)) {
       
-      if (newsState.autoMarkAsRead && !hasMarkedAsReadRef.current.has(currentArticle.article_id)) {
-        startReadTimer(currentArticle);
+      const timeAlreadySpent = Date.now() - startTimeRef.current;
+      const remainingTime = 10000 - timeAlreadySpent;
+      
+      if (remainingTime > 0) {
+        readTimerRef.current = setTimeout(async () => {
+          if (currentArticleIdRef.current === currentArticle.article_id && 
+              !hasMarkedAsReadRef.current.has(currentArticle.article_id)) {
+            try {
+              await markAsRead(currentArticle.article_id).unwrap();
+              hasMarkedAsReadRef.current.add(currentArticle.article_id);
+            } catch (error) {
+              console.error('Failed to auto-mark article as read:', error);
+            }
+          }
+        }, remainingTime);
       }
     }
-    
-    return () => {
-      if (readTimerRef.current) {
-        clearTimeout(readTimerRef.current);
-        readTimerRef.current = null;
-      }
+    console.log('▶️ Resume read timer');
+  }, [currentArticle, markAsRead]);
+
+  // ========================================================================
+  // LIKE & SIMILAR ARTICLES UTILITIES
+  // ========================================================================
+  const isArticleLiked = useCallback((articleId: string) => {
+    return likedArticleIds.includes(articleId);
+  }, [likedArticleIds]);
+
+  const getCurrentArticleLikeStatus = useCallback(() => {
+    if (!currentArticle) return { isLiked: false, isLoading: false };
+    return {
+      isLiked: likedArticleIds.includes(currentArticle.article_id),
+      isLoading: isTogglingLike,
     };
-  }, [currentArticle, newsState.autoMarkAsRead, startReadTimer]);
+  }, [currentArticle, likedArticleIds, isTogglingLike]);
+
+  // 🆕 QUEUE STATUS
+  const getSimilarArticlesQueueInfo = useCallback(() => {
+    return {
+      count: similarArticlesQueue.current.length,
+      totalSimilarArticles: similarArticlesQueue.current.reduce((sum, req) => sum + req.similarArticles.length, 0),
+      requests: similarArticlesQueue.current.map(req => ({
+        sourceArticleId: req.sourceArticleId,
+        count: req.similarArticles.length,
+        age: Date.now() - req.requestTime
+      }))
+    };
+  }, []);
+
+  // 🆕 MANUAL QUEUE PROCESSING (for testing/debugging)
+  const processQueueManually = useCallback(() => {
+    console.log('🔧 Manual queue processing triggered');
+    processSimilarArticlesQueue();
+  }, [processSimilarArticlesQueue]);
 
   // ========================================================================
-  // SYNC LIKED STATUS ON MOUNT
+  // RETURN COMPLETE INTERFACE
   // ========================================================================
-  
-  useEffect(() => {
-    // Ensure liked status is synced when hook mounts
-    if (allArticles.length > 0) {
-      dispatch(syncLikedStatus());
-    }
-  }, [dispatch, allArticles.length]);
-
-  // ========================================================================
-  // RETURN HOOK API
-  // ========================================================================
-  
   return {
-  
+    // Current state
     currentArticle,
     currentIndex,
     allArticles,
     hasMoreArticles,
     totalArticles: allArticles.length,
     
-    
+    // Loading states
     isInitialLoading,
     isLoadingMore,
     isMarkingAsRead,
     isTogglingLike,
     isNavigating: newsState.isNavigating,
     
-
+    // Error states
     error: initialError || loadMoreError,
     
-  
+    // Navigation functions
     goToNext,
     goToPrevious,
-    goToIndex,
+    goToArticle,
     canGoNext: currentIndex < allArticles.length - 1,
     canGoPrevious: currentIndex > 0,
     
-   
+    // Article actions
     markArticleAsRead,
-    toggleArticleLike,
+    toggleLike,
+    toggleArticleLike: toggleLike,
     
-    
-    getCurrentArticleLikeStatus,
-    getArticleLikeStatus,
-    isArticleLiked,
+    // Like functionality
     likedArticleIds,
-    currentArticleLikeLoading,
+    isArticleLiked,
+    getCurrentArticleLikeStatus,
     
-  
-    processQueuedSimilarArticles,
-    getPendingRequestsInfo,
-    hasPendingRequests,
-    pendingSimilarRequests,
-    
-
+    // Auto-read timer controls
     pauseReadTimer,
     resumeReadTimer,
     
-
+    // Utility functions
     setupKeyboardNavigation,
     refreshArticles,
     
-
+    // 🆕 Similar articles queue management
+    hasPendingRequests: similarArticlesQueue.current.length > 0,
+    getPendingRequestsInfo: getSimilarArticlesQueueInfo,
+    processPendingInsertions: processQueueManually,
+    clearPendingRequests: () => { similarArticlesQueue.current = []; },
+    
+    // Progress info
     progress: allArticles.length > 0 ? ((currentIndex + 1) / allArticles.length) * 100 : 0,
+    
+    // Compatibility
+    loadingProgress: () => ({
+      isLoading: isLoadingMore,
+      message: isLoadingMore ? 'Loading more articles...' : '',
+      progress: allArticles.length > 0 ? ((currentIndex + 1) / allArticles.length) * 100 : 0
+    }),
+    shouldPreload: () => false,
+    setIsNavigating: (value: boolean) => dispatch(setIsNavigating(value))
   };
 };

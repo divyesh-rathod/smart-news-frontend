@@ -34,14 +34,14 @@ interface NewsState {
   selectedCategories: string[];
   searchQuery: string;
   
-  // 🆕 NEW - Like functionality
-  likedArticleIds: Set<string>;                                    // Which articles are liked
-  pendingSimilarRequests: Map<string, PendingSimilarRequest>;      // Ongoing API calls
-  isLikeLoading: Map<string, boolean>;                            // Loading states per article
+  // 🔧 FIXED - Like functionality (now serializable)
+  likedArticleIds: string[];                                      // ✅ Array instead of Set
+  pendingSimilarRequests: { [key: string]: PendingSimilarRequest }; // ✅ Object instead of Map
+  isLikeLoading: { [key: string]: boolean };                      // ✅ Object instead of Map
   
   // 🆕 NEW - Similar articles management
-  similarArticlesQueue: EnhancedArticle[];                        // Queue of similar articles to insert
-  insertionQueue: SimilarArticlesResult[];                        // Pending insertions
+  similarArticlesQueue: EnhancedArticle[];
+  insertionQueue: SimilarArticlesResult[];
 }
 
 // ============================================================================
@@ -62,14 +62,35 @@ const initialState: NewsState = {
   selectedCategories: [],
   searchQuery: '',
   
-  // New like state
-  likedArticleIds: new Set<string>(),
-  pendingSimilarRequests: new Map<string, PendingSimilarRequest>(),
-  isLikeLoading: new Map<string, boolean>(),
+  // 🔧 FIXED - Like state (now serializable)
+  likedArticleIds: [],
+  pendingSimilarRequests: {},
+  isLikeLoading: {},
   
   // New similar articles state
   similarArticlesQueue: [],
   insertionQueue: [],
+};
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Helper to check if article is liked
+ */
+const isArticleLiked = (articleId: string, likedIds: string[]): boolean => {
+  return likedIds.includes(articleId);
+};
+
+/**
+ * Helper to create updated article with like status
+ */
+const updateArticleWithLikeStatus = (article: EnhancedArticle, likedIds: string[]): EnhancedArticle => {
+  return {
+    ...article,
+    isLiked: isArticleLiked(article.article_id, likedIds)
+  };
 };
 
 // ============================================================================
@@ -82,94 +103,71 @@ const newsSlice = createSlice({
   reducers: {
     
     // ========================================================================
-    // ✅ EXISTING ACTIONS (Enhanced with Like Status Syncing)
+    // ✅ EXISTING ACTIONS (Fixed with proper immutable updates)
     // ========================================================================
     
     /**
      * Set current article index and sync liked status
      */
-    
     setCurrentIndex: (state, action: PayloadAction<number>) => {
       state.currentIndex = action.payload;
-      state.currentArticle = state.allArticles[action.payload] || null;
+      const article = state.allArticles[action.payload];
       
-      // ✅ Ensure current article has correct liked status
-      if (state.currentArticle) {
-        state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+      if (article) {
+        // 🔧 FIXED - Create new object instead of mutating
+        state.currentArticle = updateArticleWithLikeStatus(article, state.likedArticleIds);
+      } else {
+        state.currentArticle = null;
       }
     },
     
+    /**
+     * Navigate to next article
+     */
     navigateNext: (state) => {
-      // 🎯 STEP 1: Process insertion queue when user navigates (PERFECT TIMING!)
+      // Process insertion queue when user navigates (PERFECT TIMING!)
       if (state.insertionQueue.length > 0) {
-        console.log(`🚀 Processing ${state.insertionQueue.length} queued similar articles...`);
-        
-        state.insertionQueue.forEach(insertion => {
-          const { sourceArticleId, similarArticles } = insertion;
-          const safeInsertPosition = state.currentIndex + 1;
+        state.insertionQueue.forEach(({ sourceArticleId, similarArticles, insertPosition }) => {
+          const safeInsertPosition = Math.min(insertPosition, state.allArticles.length);
           
-          // Insert similar articles after current position
+          // 🔧 FIXED - Update similar articles with like status
+          const updatedSimilarArticles = similarArticles.map(article => 
+            updateArticleWithLikeStatus(article, state.likedArticleIds)
+          );
+          
           const newAllArticles = [
             ...state.allArticles.slice(0, safeInsertPosition),
-            ...similarArticles,
+            ...updatedSimilarArticles,
             ...state.allArticles.slice(safeInsertPosition)
           ];
           
           state.allArticles = newAllArticles;
-          state.pendingSimilarRequests.delete(sourceArticleId);
-          
-          console.log(`✨ Inserted ${similarArticles.length} similar articles from ${sourceArticleId}`);
+          delete state.pendingSimilarRequests[sourceArticleId];
         });
         
-        // Clear queue after processing
         state.insertionQueue = [];
       }
       
-      // 🎯 STEP 2: Normal navigation
+      // Normal forward navigation
       if (state.currentIndex < state.allArticles.length - 1) {
         state.currentIndex += 1;
-        state.currentArticle = state.allArticles[state.currentIndex];
+        const article = state.allArticles[state.currentIndex];
         
-        // ✅ Ensure current article has correct liked status
-        if (state.currentArticle) {
-          state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
-        }
-        
-        console.log(`📰 Navigated to article ${state.currentIndex + 1}: ${state.currentArticle?.title}`);
+        // 🔧 FIXED - Create new object with like status
+        state.currentArticle = updateArticleWithLikeStatus(article, state.likedArticleIds);
       }
     },
     
+    /**
+     * Navigate to previous article
+     */
     navigatePrevious: (state) => {
-      // 🎯 Process queue if user goes back too (edge case but good UX)
-      if (state.insertionQueue.length > 0) {
-        console.log(`🔄 Processing queued articles on backward navigation...`);
-        
-        state.insertionQueue.forEach(insertion => {
-          const { sourceArticleId, similarArticles } = insertion;
-          const safeInsertPosition = state.currentIndex + 1;
-          
-          const newAllArticles = [
-            ...state.allArticles.slice(0, safeInsertPosition),
-            ...similarArticles,
-            ...state.allArticles.slice(safeInsertPosition)
-          ];
-          
-          state.allArticles = newAllArticles;
-          state.pendingSimilarRequests.delete(sourceArticleId);
-        });
-        
-        state.insertionQueue = [];
-      }
-      
-      // Normal backward navigation
       if (state.currentIndex > 0) {
         state.currentIndex -= 1;
-        state.currentArticle = state.allArticles[state.currentIndex];
+        const article = state.allArticles[state.currentIndex];
         
-        // ✅ Ensure current article has correct liked status
-        if (state.currentArticle) {
-          state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
-        }
+        // 🔧 FIXED - Create new object with like status
+        state.currentArticle = updateArticleWithLikeStatus(article, state.likedArticleIds);
       }
     },
     
@@ -178,40 +176,34 @@ const newsSlice = createSlice({
     },
     
     /**
-     * Set all articles and sync liked status from Redux state
+     * 🔧 FIXED - Set all articles and sync liked status properly
      */
     setAllArticles: (state, action: PayloadAction<EnhancedArticle[]>) => {
-      state.allArticles = action.payload;
+      // Create new articles array with proper like status
+      state.allArticles = action.payload.map(article => 
+        updateArticleWithLikeStatus(article, state.likedArticleIds)
+      );
       
-      // ✅ Sync liked status with articles when they are loaded
-      state.allArticles.forEach(article => {
-        article.isLiked = state.likedArticleIds.has(article.article_id);
-      });
-      
-      if (state.currentIndex < action.payload.length) {
+      // Update current article if valid index
+      if (state.currentIndex < state.allArticles.length) {
         state.currentArticle = state.allArticles[state.currentIndex];
       }
     },
     
     /**
-     * Append new articles and sync liked status
+     * 🔧 FIXED - Append new articles with proper like status
      */
-    
     appendArticles: (state, action: PayloadAction<EnhancedArticle[]>) => {
       const existingIds = new Set(state.allArticles.map(a => a.article_id));
-      const newArticles = action.payload.filter(a => !existingIds.has(a.article_id));
-      
-      // ✅ Sync liked status with new articles
-      newArticles.forEach(article => {
-        article.isLiked = state.likedArticleIds.has(article.article_id);
-      });
+      const newArticles = action.payload
+        .filter(a => !existingIds.has(a.article_id))
+        .map(article => updateArticleWithLikeStatus(article, state.likedArticleIds));
       
       state.allArticles = [...state.allArticles, ...newArticles];
     },
     
     setNextCursor: (state, action: PayloadAction<string | null>) => {
       state.nextCursor = action.payload;
-      state.hasMoreArticles = action.payload !== null;
     },
     
     setViewMode: (state, action: PayloadAction<'single' | 'list'>) => {
@@ -236,62 +228,78 @@ const newsSlice = createSlice({
     
     removeArticle: (state, action: PayloadAction<string>) => {
       const articleId = action.payload;
-      const newArticles = state.allArticles.filter(a => a.article_id !== articleId);
+      state.allArticles = state.allArticles.filter(a => a.article_id !== articleId);
       
-      if (state.currentIndex >= newArticles.length && newArticles.length > 0) {
-        state.currentIndex = newArticles.length - 1;
+      // Remove from liked articles if present
+      state.likedArticleIds = state.likedArticleIds.filter(id => id !== articleId);
+      
+      // Adjust current index if necessary
+      if (state.currentIndex >= state.allArticles.length && state.allArticles.length > 0) {
+        state.currentIndex = state.allArticles.length - 1;
+        state.currentArticle = state.allArticles[state.currentIndex];
       }
-      
-      state.allArticles = newArticles;
-      state.currentArticle = newArticles[state.currentIndex] || null;
     },
     
     resetNewsState: () => initialState,
     
     // ========================================================================
-    // 🆕 NEW ACTIONS - Like Functionality
+    // 🔧 FIXED - Like Actions (Now using arrays/objects instead of Set/Map)
     // ========================================================================
     
     /**
-     * Start like/unlike process (optimistic update)
+     * Start like toggle (optimistic update)
      */
-    startLikeToggle: (state, action: PayloadAction<{ 
-      articleId: string; 
+    startLikeToggle: (state, action: PayloadAction<{
+      articleId: string;
       isLiked: boolean;
       userCurrentIndex: number;
     }>) => {
       const { articleId, isLiked, userCurrentIndex } = action.payload;
       
-      // 1. Optimistic update - toggle like status immediately
+      // 1. 🔧 FIXED - Update liked articles array
       if (isLiked) {
-        state.likedArticleIds.add(articleId);
+        if (!state.likedArticleIds.includes(articleId)) {
+          state.likedArticleIds.push(articleId);
+        }
       } else {
-        state.likedArticleIds.delete(articleId);
+        state.likedArticleIds = state.likedArticleIds.filter(id => id !== articleId);
       }
       
-      // 2. Update article in allArticles array
+      // 2. 🔧 FIXED - Update article in allArticles array (create new object)
       const articleIndex = state.allArticles.findIndex(a => a.article_id === articleId);
       if (articleIndex !== -1) {
-        state.allArticles[articleIndex].isLiked = isLiked;
-        state.allArticles[articleIndex].isLikeLoading = true;
+        state.allArticles[articleIndex] = {
+          ...state.allArticles[articleIndex],
+          isLiked: isLiked,
+          isLikeLoading: true
+        };
       }
       
-      // 3. Set loading state
-      state.isLikeLoading.set(articleId, true);
+      // 3. 🔧 FIXED - Set loading state (object instead of Map)
+      state.isLikeLoading[articleId] = true;
       
       // 4. Track pending request for similar articles (only when liking)
       if (isLiked) {
-        state.pendingSimilarRequests.set(articleId, {
+        state.pendingSimilarRequests[articleId] = {
           articleId,
           requestTime: Date.now(),
-          insertPosition: userCurrentIndex + 1, // Insert after current position
+          insertPosition: userCurrentIndex + 1,
           userPositionWhenLiked: userCurrentIndex
-        });
+        };
+      }
+      
+      // 5. Update current article if it matches
+      if (state.currentArticle?.article_id === articleId) {
+        state.currentArticle = {
+          ...state.currentArticle,
+          isLiked: isLiked,
+          isLikeLoading: true
+        };
       }
     },
     
     /**
-     * Complete like toggle (API response received)
+     * 🔧 FIXED - Complete like toggle
      */
     completeLikeToggle: (state, action: PayloadAction<{
       articleId: string;
@@ -301,143 +309,129 @@ const newsSlice = createSlice({
       const { articleId, isLiked, success } = action.payload;
       
       // 1. Clear loading state
-      state.isLikeLoading.delete(articleId);
+      delete state.isLikeLoading[articleId];
       
       // 2. Update article loading state
       const articleIndex = state.allArticles.findIndex(a => a.article_id === articleId);
       if (articleIndex !== -1) {
-        state.allArticles[articleIndex].isLikeLoading = false;
+        const updatedArticle = {
+          ...state.allArticles[articleIndex],
+          isLikeLoading: false
+        };
         
         // If API failed, revert optimistic update
         if (!success) {
-          state.allArticles[articleIndex].isLiked = !isLiked;
+          updatedArticle.isLiked = !isLiked;
           if (isLiked) {
-            state.likedArticleIds.delete(articleId);
+            state.likedArticleIds = state.likedArticleIds.filter(id => id !== articleId);
           } else {
-            state.likedArticleIds.add(articleId);
+            if (!state.likedArticleIds.includes(articleId)) {
+              state.likedArticleIds.push(articleId);
+            }
           }
         }
+        
+        state.allArticles[articleIndex] = updatedArticle;
       }
       
-      // 3. If unliking, remove pending request
+      // 3. Update current article if it matches
+      if (state.currentArticle?.article_id === articleId) {
+        state.currentArticle = {
+          ...state.currentArticle,
+          isLikeLoading: false,
+          isLiked: success ? isLiked : !isLiked
+        };
+      }
+      
+      // 4. If unliking, remove pending request
       if (!isLiked) {
-        state.pendingSimilarRequests.delete(articleId);
+        delete state.pendingSimilarRequests[articleId];
       }
     },
     
     // ========================================================================
-    // 🆕 NEW ACTIONS - Similar Articles Management
+    // 🔧 FIXED - Similar Articles Management
     // ========================================================================
     
-    /**
-     * Insert similar articles into the reading queue immediately
-     * USE CASE: When timing is perfect (user hasn't moved far from insertion point)
-     */
     insertSimilarArticles: (state, action: PayloadAction<SimilarArticlesResult>) => {
       const { sourceArticleId, similarArticles, insertPosition } = action.payload;
       
-      // 1. Remove from pending requests
-      state.pendingSimilarRequests.delete(sourceArticleId);
+      // Remove from pending requests
+      delete state.pendingSimilarRequests[sourceArticleId];
       
-      // 2. Find safe insertion point (user might have moved)
-      let safeInsertPosition = Math.min(insertPosition, state.allArticles.length);
+      // Insert articles with proper like status
+      const safeInsertPosition = Math.min(insertPosition, state.allArticles.length);
+      const updatedSimilarArticles = similarArticles.map(article => 
+        updateArticleWithLikeStatus(article, state.likedArticleIds)
+      );
       
-      // If user has moved past the insertion point, insert after current position
-      if (state.currentIndex >= safeInsertPosition) {
-        safeInsertPosition = state.currentIndex + 1;
-      }
-      
-      // 3. Insert similar articles at the calculated position
       const newAllArticles = [
         ...state.allArticles.slice(0, safeInsertPosition),
-        ...similarArticles,
+        ...updatedSimilarArticles,
         ...state.allArticles.slice(safeInsertPosition)
       ];
       
       state.allArticles = newAllArticles;
-      
-      // 4. Update current article reference (index stays same, but array changed)
-      state.currentArticle = state.allArticles[state.currentIndex] || null;
-      
-      console.log(`🎯 Inserted ${similarArticles.length} similar articles at position ${safeInsertPosition}`);
     },
     
-    /**
-     * Queue similar articles for insertion during next navigation
-     * USE CASE: When user has moved far from original insertion point
-     * Articles will be automatically inserted when user navigates next
-     */
     queueSimilarArticles: (state, action: PayloadAction<SimilarArticlesResult>) => {
       state.insertionQueue.push(action.payload);
-      console.log(`📥 Queued ${action.payload.similarArticles.length} similar articles for next navigation`);
     },
     
-    /**
-     * Process queued similar articles insertions (Manual trigger - rarely needed)
-     * NOTE: Queue is automatically processed during navigation (navigateNext/Previous)
-     * This is mainly for edge cases or manual control
-     */
     processInsertionQueue: (state) => {
-      // Process all queued insertions
-      state.insertionQueue.forEach(insertion => {
-        const { sourceArticleId, similarArticles } = insertion;
-        const safeInsertPosition = state.currentIndex + 1;
+      state.insertionQueue.forEach(({ sourceArticleId, similarArticles, insertPosition }) => {
+        const safeInsertPosition = Math.min(insertPosition, state.allArticles.length);
+        const updatedSimilarArticles = similarArticles.map(article => 
+          updateArticleWithLikeStatus(article, state.likedArticleIds)
+        );
         
         const newAllArticles = [
           ...state.allArticles.slice(0, safeInsertPosition),
-          ...similarArticles,
+          ...updatedSimilarArticles,
           ...state.allArticles.slice(safeInsertPosition)
         ];
         
         state.allArticles = newAllArticles;
-        state.pendingSimilarRequests.delete(sourceArticleId);
+        delete state.pendingSimilarRequests[sourceArticleId];
       });
       
-      // Clear queue
       state.insertionQueue = [];
-      
-      // Update current article reference
-      state.currentArticle = state.allArticles[state.currentIndex] || null;
     },
     
-    /**
-     * Clear pending similar requests (cleanup)
-     */
     clearPendingSimilarRequests: (state) => {
-      state.pendingSimilarRequests.clear();
+      state.pendingSimilarRequests = {};
       state.insertionQueue = [];
     },
     
     /**
-     * Bulk set liked articles (for persistence restoration)
+     * 🔧 FIXED - Bulk set liked articles
      */
     setLikedArticles: (state, action: PayloadAction<string[]>) => {
-      state.likedArticleIds = new Set(action.payload);
+      state.likedArticleIds = action.payload;
       
-      // Sync liked status across all articles using the helper function
-      // Update all articles
-      state.allArticles.forEach(article => {
-        article.isLiked = state.likedArticleIds.has(article.article_id);
-      });
+      // 🔧 FIXED - Update all articles with new like status
+      state.allArticles = state.allArticles.map(article => 
+        updateArticleWithLikeStatus(article, state.likedArticleIds)
+      );
       
       // Update current article
       if (state.currentArticle) {
-        state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+        state.currentArticle = updateArticleWithLikeStatus(state.currentArticle, state.likedArticleIds);
       }
     },
+    
     /**
-     * Sync liked status across all articles and current article
-     * Useful after bulk updates or state restoration
+     * 🔧 FIXED - Sync liked status across all articles
      */
     syncLikedStatus: (state) => {
       // Update all articles
-      state.allArticles.forEach(article => {
-        article.isLiked = state.likedArticleIds.has(article.article_id);
-      });
+      state.allArticles = state.allArticles.map(article => 
+        updateArticleWithLikeStatus(article, state.likedArticleIds)
+      );
       
       // Update current article
       if (state.currentArticle) {
-        state.currentArticle.isLiked = state.likedArticleIds.has(state.currentArticle.article_id);
+        state.currentArticle = updateArticleWithLikeStatus(state.currentArticle, state.likedArticleIds);
       }
     },
   },
@@ -447,7 +441,6 @@ const newsSlice = createSlice({
 // EXPORTS
 // ============================================================================
 
-// Export actions
 export const {
   // Existing actions
   setCurrentIndex,
@@ -465,7 +458,7 @@ export const {
   removeArticle,
   resetNewsState,
   
-  // New like actions
+  // Like actions
   startLikeToggle,
   completeLikeToggle,
   insertSimilarArticles,
@@ -476,11 +469,10 @@ export const {
   syncLikedStatus,
 } = newsSlice.actions;
 
-// Export reducer
 export default newsSlice.reducer;
 
 // ============================================================================
-// SELECTORS (Enhanced with Like Data)
+// 🔧 FIXED SELECTORS (Updated for new data structures)
 // ============================================================================
 
 export const selectNews = (state: { news: NewsState }) => state.news;
@@ -491,11 +483,12 @@ export const selectHasMoreArticles = (state: { news: NewsState }) => state.news.
 export const selectNextCursor = (state: { news: NewsState }) => state.news.nextCursor;
 export const selectIsNavigating = (state: { news: NewsState }) => state.news.isNavigating;
 
-// 🆕 NEW SELECTORS - Like functionality
+// 🔧 FIXED - Like functionality selectors
 export const selectLikedArticleIds = (state: { news: NewsState }) => state.news.likedArticleIds;
 export const selectIsArticleLiked = (articleId: string) => (state: { news: NewsState }) => 
-  state.news.likedArticleIds.has(articleId);
+  state.news.likedArticleIds.includes(articleId);
 export const selectIsLikeLoading = (articleId: string) => (state: { news: NewsState }) => 
-  state.news.isLikeLoading.get(articleId) || false;
+  state.news.isLikeLoading[articleId] || false;
 export const selectPendingSimilarRequests = (state: { news: NewsState }) => state.news.pendingSimilarRequests;
-export const selectHasPendingRequests = (state: { news: NewsState }) => state.news.pendingSimilarRequests.size > 0;
+export const selectHasPendingRequests = (state: { news: NewsState }) => 
+  Object.keys(state.news.pendingSimilarRequests).length > 0;
