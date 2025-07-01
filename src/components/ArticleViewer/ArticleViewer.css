@@ -49,44 +49,11 @@
            MAIN CONTAINER
            ============================================================================ */
 
-.article-viewer-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 32px 24px;
-    background: var(--bg-primary);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    position: relative;
-    overflow: hidden;
-}
-
-.article-viewer-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: var(--bg-gradient);
-    z-index: 1;
-}
 
 /* ============================================================================
            PROGRESS BAR - Enhanced with Loading States
            ============================================================================ */
 
-.progress-container {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 16px 20px;
-    border-radius: var(--radius-md);
-    margin-bottom: 24px;
-    border: 1px solid var(--border-color-light);
-    box-shadow: var(--shadow-sm);
-}
 
 .progress-bar {
     width: 100%;
@@ -171,23 +138,6 @@
            NAVIGATION HEADER - Enhanced Modern Style
            ============================================================================ */
 
-.navigation-header {
-    margin: 32px 0;
-    padding: 24px 0;
-    border-bottom: 2px solid var(--border-color-light);
-    position: relative;
-}
-
-.navigation-header::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 60px;
-    height: 2px;
-    background: var(--bg-gradient);
-    border-radius: 1px;
-}
 
 .nav-controls {
     display: flex;
@@ -516,22 +466,6 @@
     background: linear-gradient(135deg, var(--primary-blue-dark), var(--primary-blue-darker));
 }
 
-.mark-read-btn {
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    border: 2px solid var(--border-color);
-    padding: 16px 24px;
-    border-radius: var(--radius-md);
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-normal);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 140px;
-    justify-content: center;
-}
 
 .mark-read-btn::before {
     content: '✓';
@@ -867,8 +801,196 @@
     .article-title-link {
         color: #000 !important;
         text-decoration: none !important;
-    }
+    } }
 
-    .article-title-link::after {
-        display: none;
-    }     }
+
+
+        .navigation-header {
+            position: sticky;
+            top: 64px;
+            /* Adjust based on your main header height */
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            margin-top: 0;
+            /* Remove the fixed margin */
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 1px solid #e1e5e9;
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateY(0);
+            opacity: 1;
+        }
+    
+        /* Hidden state when scrolling down */
+        .navigation-header.header-hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+    
+        /* Visible state when at top or scrolling up */
+        .navigation-header.header-visible {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: all;
+        }
+    
+        /* Enhanced shadow when scrolling */
+        .navigation-header.header-scrolled {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom-color: #dee2e6;
+        }
+    
+        /* ============================================================================
+             PROGRESS CONTAINER - STICK TO TOP
+             ============================================================================ */
+    
+        .progress-container {
+            position: sticky;
+            top: 0;
+            z-index: 101;
+            /* Above navigation header */
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+    
+        /* ============================================================================
+             RESPONSIVE ADJUSTMENTS
+             ============================================================================ */
+    
+        @media (max-width: 768px) {
+            .navigation-header {
+                top: 56px;
+                /* Smaller header on mobile */
+                padding: 15px 0;
+            }
+    
+            .progress-container {
+                padding: 6px 12px;
+            }
+        }
+    
+        @media (max-width: 480px) {
+            .navigation-header {
+                top: 48px;
+            }
+        }
+    
+        /* ============================================================================
+             ARTICLE VIEWER CONTAINER - ADJUST FOR STICKY HEADERS
+             ============================================================================ */
+    
+        .article-viewer-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            position: relative;
+        }
+                .article-actions {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                    padding: 30px 0;
+                    border-top: 1px solid #e1e5e9;
+                }
+        
+                .primary-actions {
+                    display: flex;
+                    gap: 16px;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    /* Center the primary actions */
+                }
+        
+                .secondary-actions {
+                    display: flex;
+                    justify-content: center;
+                    /* Center the like button */
+                    align-items: center;
+                    width: 100%;
+                }
+        
+                /* ============================================================================
+                     LIKE BUTTON - FIXED SIZING AND CENTERING
+                     ============================================================================ */
+        
+                .like-button {
+                    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                    border: 2px solid #dee2e6;
+                    color: #495057;
+                    padding: 16px 32px;
+                    border-radius: 50px;
+                    font-weight: 600;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    min-width: 180px;
+                    /* Fixed minimum width */
+                    max-width: 250px;
+                    /* Reasonable maximum */
+                    width: auto;
+                    /* Let content determine width */
+                    position: relative;
+                    overflow: hidden;
+                    margin: 0 auto;
+                    /* Center the button */
+                }
+        
+                /* ============================================================================
+                     RESPONSIVE DESIGN - FIXED
+                     ============================================================================ */
+        
+                @media (max-width: 768px) {
+                    .primary-actions {
+                        flex-direction: column;
+                        align-items: center;
+                        /* Center buttons on mobile */
+                    }
+        
+                    .read-full-article-btn,
+                    .mark-read-btn {
+                        width: 100%;
+                        max-width: 300px;
+                        /* Reasonable max width */
+                    }
+        
+                    .like-button {
+                        width: auto;
+                        /* Remove full width */
+                        min-width: 160px;
+                        max-width: 280px;
+                        margin: 0 auto;
+                        /* Keep centered */
+                    }
+        
+                    .secondary-actions {
+                        padding: 0 20px;
+                        /* Add some side padding on mobile */
+                    }
+                }
+        
+                @media (max-width: 480px) {
+                    .like-button {
+                        padding: 14px 24px;
+                        font-size: 14px;
+                        min-width: 140px;
+                        max-width: 260px;
+                    }
+        
+                    .primary-actions {
+                        padding: 0 10px;
+                        /* Add padding for very small screens */
+                    }       }
