@@ -289,9 +289,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
           </h1>
           
           <div className="article-meta">
-            <time className="article-date" dateTime={currentArticle.pub_date}>
-              {formatDate(currentArticle.pub_date)}
-            </time>
+           
             
             {renderCategories()}
 
@@ -306,17 +304,13 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
 
         {/* Article Body */}
         <div className="article-body">
-          {currentArticle.description && (
-            <div className="article-description">
-              <p>{currentArticle.description}</p>
-            </div>
-          )}
-          
           {currentArticle.category_2 && (
-            <div className="article-summary">
+            <div className="article-description">
               <p>{currentArticle.category_2}</p>
             </div>
           )}
+          
+  
         </div>
 
         {/* Article Actions */}
@@ -331,14 +325,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
               Read Full Article
             </a>
             
-            <button
-              className="mark-read-btn"
-              onClick={handleMarkAsRead}
-              disabled={isMarkingAsRead}
-              title="Mark as read (R key)"
-            >
-              {isMarkingAsRead ? 'Marking...' : 'Mark as Read'}
-            </button>
+        
           </div>
 
           {/* Simple Like Section */}
@@ -391,24 +378,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         </div>
       </article>
 
-      {/* Simple Keyboard Shortcuts */}
-      <div className="keyboard-shortcuts">
-        <h4>Keyboard Shortcuts</h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px' }}>
-          <span className="shortcut-item">
-            <span className="shortcut-key">←/H</span> Previous
-          </span>
-          <span className="shortcut-item">
-            <span className="shortcut-key">→/L</span> Next
-          </span>
-          <span className="shortcut-item">
-            <span className="shortcut-key">R</span> Mark Read
-          </span>
-          <span className="shortcut-item">
-            <span className="shortcut-key">F/Space</span> Like
-          </span>
-        </div>
-      </div>
+ 
 
       {/* Similar Articles Notification */}
       {showSimilarArticlesNotification && (
