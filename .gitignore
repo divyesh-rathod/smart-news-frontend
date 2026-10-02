@@ -65,3 +65,6 @@ Thumbs.db
 # ---- environment files ----
 .env
 
+# ---- Local notes (never commit) ----
+NOTES_LOCAL.md
+
