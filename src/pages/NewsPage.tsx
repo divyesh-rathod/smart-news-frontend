@@ -1,26 +1,11 @@
-// src/pages/NewsRedux.tsx
+// src/pages/NewsPage.tsx
 import React from 'react';
 import ArticleViewer from '../components/ArticleViewer/ArticleViewer';
 import { useNews } from '../hooks/useNews';
 import './News.css';
 
 const NewsPage: React.FC = () => {
-  const {
-    totalArticles,
-    isLoadingMore,
-    refreshArticles,
-  } = useNews();
-
-  // Handle article change (for analytics, logging, etc.)
-  const handleArticleChange = (articleId: string, index: number) => {
-    console.log(`Viewing article ${index + 1}/${totalArticles}:`, articleId);
-    
-    // Optional: Send analytics event
-    // analytics.track('article_viewed', { 
-    //   article_id: articleId, 
-    //   position: index 
-    // });
-  };
+  const news = useNews();
 
   return (
     <div className="news-page-container">
@@ -28,11 +13,10 @@ const NewsPage: React.FC = () => {
         <h1>Smart News</h1>
         <p>Discover personalized articles curated just for you</p>
         
-        {/* Optional: Refresh button */}
         <button 
           className="refresh-btn"
-          onClick={refreshArticles}
-          disabled={isLoadingMore}
+          onClick={news.refreshArticles}
+          disabled={news.isLoadingMore}
         >
           🔄 Refresh Articles
         </button>
@@ -40,29 +24,19 @@ const NewsPage: React.FC = () => {
 
       <main className="news-page-content">
         <ArticleViewer
-          onArticleChange={handleArticleChange}
+          news={news}
           showLikeButton={true}
           autoMarkAsRead={true}
         />
       </main>
 
       {/* Loading indicator when fetching more */}
-      {isLoadingMore && (
+      {news.isLoadingMore && (
         <div className="loading-more">
           <div className="small-spinner"></div>
           <span>Loading more articles...</span>
         </div>
       )}
-
-      {/* Optional: Article info panel */}
-      {/* {currentArticle && (
-        <div className="article-info-panel">
-          <p>
-            Reading article {currentIndex + 1} of {totalArticles} • 
-            Published {new Date(currentArticle.pub_date).toLocaleDateString()}
-          </p>
-        </div>
-      )} */}
     </div>
   );
 };

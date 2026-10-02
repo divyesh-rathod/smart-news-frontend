@@ -1,16 +1,18 @@
 // src/components/ArticleViewer/ArticleViewer.tsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useScrollHeader } from '../../hooks/useScrollHeader';
-import { useNews } from '../../hooks/useNews';
+import type { NewsController } from '../../hooks/useNews';
 import './ArticleViewer.css';
 
 interface ArticleViewerProps {
+  news: NewsController;
   onArticleChange?: (articleId: string, index: number) => void;
   showLikeButton?: boolean;
   autoMarkAsRead?: boolean;
 }
 
 const ArticleViewer: React.FC<ArticleViewerProps> = ({
+  news,
   onArticleChange,
   showLikeButton = true,
   autoMarkAsRead = false
@@ -32,7 +34,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     likeError,
     dismissLikeError,
     progress,
-  } = useNews();
+  } = news;
    
   const { getHeaderClasses } = useScrollHeader({
     threshold: 80,

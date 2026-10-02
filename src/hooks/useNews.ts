@@ -28,6 +28,12 @@ import {
 
 const MARK_AS_READ_AFTER_MS = 10_000;
 
+export type NewsController = ReturnType<typeof useNews>;
+
+/**
+ * The reader's feed, navigation, read timer and likes. Call it once per page and pass the result down:
+ * every instance runs its own read timer and initial load.
+ */
 export const useNews = () => {
   const dispatch = useAppDispatch();
 

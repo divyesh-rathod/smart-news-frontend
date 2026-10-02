@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import ArticleViewer from './ArticleViewer';
+import { useNews } from '../../hooks/useNews';
 import {
   type ApiCall,
   deferred,
@@ -16,6 +17,10 @@ type LikeHandler = (call: ApiCall) => Response | Promise<Response>;
 
 const liked = (top5: unknown[] = []) => json({ message: 'Article liked', liked: true, top5, similar: [] });
 
+function Viewer() {
+  return <ArticleViewer news={useNews()} />;
+}
+
 function setup(likeHandler: LikeHandler, feed = [feedArticle(1), feedArticle(2), feedArticle(3)]) {
   const calls = mockApi({
     'GET /news/unseen-articles': () => json({ results: feed, next_cursor: null }),
@@ -24,7 +29,7 @@ function setup(likeHandler: LikeHandler, feed = [feedArticle(1), feedArticle(2),
     'POST /news/toggle-like/*': likeHandler,
   });
   const user = userEvent.setup();
-  renderWithStore(<ArticleViewer />);
+  renderWithStore(<Viewer />);
   return { calls, user };
 }
 
