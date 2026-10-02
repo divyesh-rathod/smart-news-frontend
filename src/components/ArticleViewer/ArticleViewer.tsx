@@ -1,19 +1,17 @@
 // src/components/ArticleViewer/ArticleViewer.tsx
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useScrollHeader } from '../../hooks/useScrollHeader';
 import type { NewsController } from '../../hooks/useNews';
 import './ArticleViewer.css';
 
 interface ArticleViewerProps {
   news: NewsController;
-  onArticleChange?: (articleId: string, index: number) => void;
   showLikeButton?: boolean;
   autoMarkAsRead?: boolean;
 }
 
 const ArticleViewer: React.FC<ArticleViewerProps> = ({
   news,
-  onArticleChange,
   showLikeButton = true,
   autoMarkAsRead = false
 }) => {
@@ -125,19 +123,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [canGoNext, canGoPrevious, isNavigating, currentArticle, goToNext, goToPrevious, handleLikeClick, handleMarkAsRead]);
-
-  // ========================================================================
-  // ARTICLE CHANGE NOTIFICATION - SIMPLE
-  // ========================================================================
-  
-  const lastNotifiedRef = useRef<string | null>(null);
-  
-  useEffect(() => {
-    if (currentArticle && onArticleChange && lastNotifiedRef.current !== currentArticle.article_id) {
-      lastNotifiedRef.current = currentArticle.article_id;
-      onArticleChange(currentArticle.article_id, currentIndex);
-    }
-  }, [currentArticle?.article_id, currentIndex, onArticleChange]);
 
   // ========================================================================
   // UTILITY FUNCTIONS
