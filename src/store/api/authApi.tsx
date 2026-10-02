@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { AuthResponse, User } from '../../types/authTypes';
 import type { LoginFormData, SignupFormData } from '../../schemas/authSchemas';
-import { type RootState } from '../index';
+import type { RootState } from '../index';
 
 // Custom error type for our API
 interface ApiError {

@@ -8,7 +8,7 @@ import type {
   EnhancedArticle,
   SimilarArticlesResult 
 } from '../../types/articleTypes';
-import { type RootState } from '../index';
+import type { RootState } from '../index';
 
 // ============================================================================
 // TRANSFORMATION UTILITIES (API → Enhanced Types)
