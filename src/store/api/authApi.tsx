@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery, type FetchBaseQueryError } from '@reduxjs/to
 import type { AuthResponse, User } from '../../types/authTypes';
 import type { LoginFormData, SignupFormData } from '../../schemas/authSchemas';
 import type { RootState } from '../index';
+import { API_BASE_URL } from '../../config/api';
 
 // Custom error type for our API
 interface ApiError {
@@ -53,7 +54,7 @@ const handleApiError = (error: FetchBaseQueryError): ApiError => {
 
 // Base query with automatic token attachment
 const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/V1',
+  baseUrl: API_BASE_URL,
   
   // Automatically add auth token to requests
   prepareHeaders: (headers, { getState }) => {

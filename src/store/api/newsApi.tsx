@@ -8,6 +8,7 @@ import type {
   LikeResult,
 } from '../../types/articleTypes';
 import type { RootState } from '../index';
+import { API_BASE_URL } from '../../config/api';
 
 // ============================================================================
 // TRANSFORMATION (API → reading list)
@@ -65,7 +66,7 @@ const handleApiError = (error: FetchBaseQueryError) => {
 // ============================================================================
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/V1',
+  baseUrl: API_BASE_URL,
   
   prepareHeaders: (headers, { getState }) => {
     const state = getState() as RootState;
