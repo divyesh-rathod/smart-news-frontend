@@ -1,5 +1,5 @@
 // src/components/ArticleViewer/ArticleViewer.tsx
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useScrollHeader } from '../../hooks/useScrollHeader';
 import { useNews } from '../../hooks/useNews';
 import './ArticleViewer.css';
@@ -26,11 +26,12 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     goToPrevious,
     markArticleAsRead,
     isMarkingAsRead,
-    toggleArticleLike,
-    getCurrentArticleLikeStatus,
+    toggleLike,
+    isLiked,
+    isLikePending,
+    likeError,
+    dismissLikeError,
     progress,
-    hasPendingRequests,
-    // Remove non-existent properties
   } = useNews();
    
   const { getHeaderClasses } = useScrollHeader({
@@ -49,7 +50,38 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
   };
 
   // ========================================================================
-  // KEYBOARD NAVIGATION - MANUAL SETUP
+  // LOCAL STATE
+  // ========================================================================
+  
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [recommendationsAdded, setRecommendationsAdded] = useState(0);
+
+  // ========================================================================
+  // EVENT HANDLERS
+  // ========================================================================
+  
+  const handleLikeClick = useCallback(async () => {
+    setShowLikeAnimation(true);
+    setTimeout(() => setShowLikeAnimation(false), 500);
+
+    const outcome = await toggleLike();
+    if (outcome && outcome.recommendationsAdded > 0) {
+      setRecommendationsAdded(outcome.recommendationsAdded);
+      setTimeout(() => setRecommendationsAdded(0), 4000);
+    }
+  }, [toggleLike]);
+
+  const handleMarkAsRead = useCallback(() => {
+    if (!currentArticle) return;
+    
+    markArticleAsRead();
+    if (autoMarkAsRead && canGoNext) {
+      setTimeout(() => goToNext(), 500);
+    }
+  }, [currentArticle, markArticleAsRead, autoMarkAsRead, canGoNext, goToNext]);
+
+  // ========================================================================
+  // KEYBOARD NAVIGATION
   // ========================================================================
   
   useEffect(() => {
@@ -90,20 +122,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [canGoNext, canGoPrevious, isNavigating, currentArticle]);
-
-  // ========================================================================
-  // LOCAL STATE - SIMPLE
-  // ========================================================================
-  
-  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
-  const [showSimilarArticlesNotification, setShowSimilarArticlesNotification] = useState(false);
-
-  // ========================================================================
-  // GET LIKE STATUS
-  // ========================================================================
-  
-  const { isLiked, isLoading: likeLoading } = getCurrentArticleLikeStatus();
+  }, [canGoNext, canGoPrevious, isNavigating, currentArticle, goToNext, goToPrevious, handleLikeClick, handleMarkAsRead]);
 
   // ========================================================================
   // ARTICLE CHANGE NOTIFICATION - SIMPLE
@@ -119,56 +138,11 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
   }, [currentArticle?.article_id, currentIndex, onArticleChange]);
 
   // ========================================================================
-  // 🔧 FIXED - SIMPLE EVENT HANDLERS
-  // ========================================================================
-  
-  const handleLikeClick = async () => {
-    if (!currentArticle || likeLoading) return;
-    
-    setShowLikeAnimation(true);
-    
-    try {
-      // 🔧 FIXED - Use correct function name
-      const result = await toggleArticleLike();
-      
-      if (result && result.liked && result.top5 && result.top5.length > 0) {
-        console.log(`🎉 Liked! ${result.top5.length} similar articles incoming...`);
-        setShowSimilarArticlesNotification(true);
-        setTimeout(() => setShowSimilarArticlesNotification(false), 4000);
-      }
-      
-    } catch (error) {
-      console.error('❌ Like failed:', error);
-    } finally {
-      setTimeout(() => setShowLikeAnimation(false), 500);
-    }
-  };
-
-  const handleMarkAsRead = () => {
-    if (!currentArticle) return;
-    
-    markArticleAsRead();
-    if (autoMarkAsRead && canGoNext) {
-      setTimeout(() => goToNext(), 500);
-    }
-  };
-
-  // ========================================================================
   // UTILITY FUNCTIONS
   // ========================================================================
   
   const renderCategories = () => {
-    if (!currentArticle?.categories) return null;
-    
-    let categoryArray: string[] = [];
-    
-    if (Array.isArray(currentArticle.categories)) {
-      categoryArray = currentArticle.categories;
-    } else if (typeof currentArticle.categories === 'string') {
-      categoryArray = [currentArticle.categories];
-    } else if (currentArticle.category_1) {
-      categoryArray = [String(currentArticle.category_1)];
-    }
+    const categoryArray = currentArticle?.categories ?? [];
     
     return categoryArray.length > 0 && (
       <div className="article-categories">
@@ -217,13 +191,10 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     );
   }
 
-  // 🔧 FIXED - Remove duplicate variable definition
-  // const { isLiked: currentlyLiked } = getCurrentArticleLikeStatus(); // Removed this line
-
   return (
     <div className="article-viewer-container">
       
-      {/* 🔧 FIXED - Simple Progress Bar */}
+      {/* Progress Bar */}
       <div className="progress-container">
         <div className="progress-bar">
           <div 
@@ -233,11 +204,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         </div>
         <div className="progress-text">
           <span>{formatProgress()}</span>
-          {hasPendingRequests && (
-            <div className="loading-indicator">
-              <span>🎯 Similar articles loading...</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -339,32 +305,30 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
             </button>
           </div>
 
-          {/* 🔧 FIXED - Simple Like Section with proper variables */}
+          {/* Like: shows the new state at once; busy (and ignoring presses) until the server answers */}
           {showLikeButton && (
             <div className="secondary-actions">
               <button
-                className={`like-button ${isLiked ? 'liked' : ''} ${likeLoading ? 'loading' : ''} ${showLikeAnimation ? 'animate' : ''}`}
+                className={`like-button ${isLiked ? 'liked' : ''} ${isLikePending ? 'loading' : ''} ${showLikeAnimation ? 'animate' : ''}`}
                 onClick={handleLikeClick}
-                disabled={likeLoading}
+                disabled={isLikePending}
+                aria-busy={isLikePending}
                 title={isLiked ? 'Unlike article (Space)' : 'Like article (Space)'}
                 aria-label={isLiked ? 'Unlike this article' : 'Like this article'}
               >
-                {likeLoading ? (
-                  <>
-                    <div className="button-spinner"></div>
-                    <span className="like-text">Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className={`like-icon ${isLiked ? 'liked' : ''}`}>
-                      {isLiked ? '❤️' : '🤍'}
-                    </span>
-                    <span className="like-text">
-                      {isLiked ? 'Liked!' : 'Like Article'}
-                    </span>
-                  </>
-                )}
+                <span className={`like-icon ${isLiked ? 'liked' : ''}`}>
+                  {isLiked ? '❤️' : '🤍'}
+                </span>
+                <span className="like-text">
+                  {isLiked ? 'Liked!' : 'Like Article'}
+                </span>
               </button>
+              {likeError && (
+                <div role="alert" className="like-error">
+                  <span>{likeError}</span>
+                  <button type="button" onClick={dismissLikeError} aria-label="Dismiss">×</button>
+                </div>
+              )}
               <p style={{ marginTop: '12px', fontSize: '14px', color: '#6c757d', textAlign: 'center' }}>
                 {isLiked 
                   ? 'Thanks! We\'ll find similar articles for you.' 
@@ -376,11 +340,13 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         </div>
       </article>
 
-      {/* Similar Articles Notification */}
-      {showSimilarArticlesNotification && (
-        <div className="similar-articles-notification">
+      {/* Recommendations from the last like */}
+      {recommendationsAdded > 0 && (
+        <div className="similar-articles-notification" role="status">
           <span className="notification-icon">🎉</span>
-          <span>Great choice! Similar articles are being prepared for you...</span>
+          <span>
+            Added {recommendationsAdded} similar {recommendationsAdded === 1 ? 'article' : 'articles'} up next
+          </span>
         </div>
       )}
 

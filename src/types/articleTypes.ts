@@ -1,12 +1,12 @@
 // src/types/articleTypes.ts
 // ============================================================================
-// ORIGINAL API TYPES (UNCHANGED - Direct from Backend)
+// API TYPES (match app/schemas/news_schema.py in the backend)
 // ============================================================================
 
 export interface Article {
   article_id: string;
   cleaned_text: string;
-  category_1: string[];
+  category_1: string | null;
   category_2: string | null;
   processed_at: string;
   pub_date: string;
@@ -14,6 +14,7 @@ export interface Article {
   link: string;
   description: string | null;
   categories: string[] | null;
+  liked: boolean; // the user's like when the feed page was fetched
 }
 
 export interface ArticlesResponse {
@@ -26,12 +27,12 @@ export interface ArticleScore {
   title: string;
   link: string;
   cleaned_text: string;
-  category_1: string[] ;
-  category_2: string ;
+  category_1: string | null;
+  category_2: string | null;
   score: number;
 }
 
-export interface ToggleLikeResponse {
+export interface LikeResponse {
   message: string;
   liked: boolean;
   top5: ArticleScore[];
@@ -39,78 +40,17 @@ export interface ToggleLikeResponse {
 }
 
 // ============================================================================
-// FRONTEND ENHANCEMENT TYPES (NEW - For Like Feature)
+// FRONTEND TYPES
 // ============================================================================
 
-/**
- * Enhanced Article with frontend-only fields for like functionality
- * Extends the original Article from API with additional tracking
- */
+/** An article in the reading list. Recommended ones remember which like brought them in. */
 export interface EnhancedArticle extends Article {
-  // Like tracking
-  isLiked?: boolean;           // Frontend tracks if user liked this article
-  
-  // Similar article metadata
-  isSimilar?: boolean;         // Frontend marks articles from ML recommendations
-  sourceArticleId?: string;    // Frontend tracks which article triggered this recommendation
-  
-  // UI state
-  isLikeLoading?: boolean;     // Frontend tracks if like API call is in progress
-}
-
-/**
- * Tracks pending similar article requests while user continues reading
- */
-export interface PendingSimilarRequest {
-  articleId: string;           // Which article was liked
-  requestTime: number;         // When the API call started (timestamp)
-  insertPosition: number;      // Where to insert similar articles in queue
-  userPositionWhenLiked: number; // User's current position when they liked
-}
-
-/**
- * Response data when similar articles arrive from ML model
- */
-export interface SimilarArticlesResult {
-  sourceArticleId: string;     // Which article was liked
-  similarArticles: EnhancedArticle[]; // The 5 similar articles (already enhanced)
-  insertPosition: number;      // Where they should be inserted
-}
-
-/**
- * Like state management
- */
-export interface LikeState {
-  likedArticleIds: Set<string>;           // Set of liked article IDs
-  pendingRequests: Map<string, PendingSimilarRequest>; // Ongoing API calls
-  likeCounts: Map<string, number>;        // Cache like counts (optional)
-}
-
-/**
- * Queue operation types for managing article insertion
- */
-export type QueueOperation = 
-  | { type: 'INSERT_SIMILAR'; payload: SimilarArticlesResult }
-  | { type: 'MARK_LIKED'; payload: { articleId: string; isLiked: boolean } }
-  | { type: 'UPDATE_POSITION'; payload: { newIndex: number } };
-
-// ============================================================================
-// UTILITY TYPES FOR TRANSFORMATIONS
-// ============================================================================
-
-/**
- * Transform API Article to Enhanced Article
- */
-export type ArticleTransformer = (article: Article, enhancements?: {
-  isLiked?: boolean;
   isSimilar?: boolean;
   sourceArticleId?: string;
-}) => EnhancedArticle;
+}
 
-/**
- * Transform API ArticleScore to Enhanced Article (for similar articles)
- */
-export type ArticleScoreTransformer = (
-  articleScore: ArticleScore, 
-  sourceArticleId: string
-) => EnhancedArticle;
+/** What PUT /news/like/{id} means for the reading list. */
+export interface LikeResult {
+  liked: boolean;
+  recommendations: EnhancedArticle[];
+}
