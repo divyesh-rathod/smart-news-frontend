@@ -8,6 +8,7 @@ export interface ApiCall {
   method: string;
   path: string;
   body: unknown;
+  query?: Record<string, string>; // only when the URL has a query string
 }
 
 type Handler = (call: ApiCall) => Response | Promise<Response>;
@@ -29,9 +30,11 @@ export function deferred<T>() {
 export function mockApi(routes: Record<string, Handler>): ApiCall[] {
   const calls: ApiCall[] = [];
   vi.stubGlobal('fetch', vi.fn(async (input: Request) => {
-    const path = new URL(input.url).pathname.replace(/^\/api\/V1/, '');
+    const url = new URL(input.url);
+    const path = url.pathname.replace(/^\/api\/V1/, '');
     const text = input.method === 'GET' ? '' : await input.text();
-    const call = { method: input.method, path, body: text ? JSON.parse(text) : undefined };
+    const call: ApiCall = { method: input.method, path, body: text ? JSON.parse(text) : undefined };
+    if (url.search) call.query = Object.fromEntries(url.searchParams);
     calls.push(call);
     const handler = routes[`${call.method} ${call.path}`]
       ?? Object.entries(routes).find(([key]) => key.endsWith('*') && `${call.method} ${call.path}`.startsWith(key.slice(0, -1)))?.[1];
