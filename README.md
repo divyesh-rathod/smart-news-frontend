@@ -66,7 +66,7 @@ The backend allows CORS from `localhost:5173` and `localhost:3000`.
 
 ## Tests
 
-20 tests. Components run against a real store, with `fetch` replaced by route handlers (`src/test/api.tsx`). Responses can be held back with `deferred()`, so a test can like an article, navigate twice, and only then let the response arrive.
+22 tests. Components run against a real store, with `fetch` replaced by route handlers (`src/test/api.tsx`). Responses can be held back with `deferred()`, so a test can like an article, navigate twice, and only then let the response arrive.
 
 - `ArticleViewer.test.tsx`:
   - the optimistic like, and one request despite clicks and shortcuts while saving
@@ -75,8 +75,9 @@ The backend allows CORS from `localhost:5173` and `localhost:3000`.
   - the shortcut acting on the article on screen
   - recommendations placed next and added once, even when they arrive late
   - duplicates skipped
+  - Next and Previous staying usable after scrolling down
 - `likeArticle.test.ts`: the response transform, the request body, two presses in one tick, the server's answer winning, a failed unlike staying liked, feed pages not overriding a like in flight.
-- `NewsPage.test.tsx`: one mark-as-read per article; marking an article read doesn't refetch the feed. Each feed request advances the backend's feed cursor, so a refetch skips unread articles.
+- `NewsPage.test.tsx`: one mark-as-read per article; the next page is requested with the previous page's cursor; marking an article read doesn't refetch the feed.
 - `signOut.test.ts`, `config/api.test.ts`: logout resets user data; both APIs use the same base URL.
 
 GitHub Actions runs `npm ci`, lint, typecheck, test and build on Node 24.
@@ -104,7 +105,6 @@ src/
 ## Known limitations
 
 - **No token refresh.** When the token expires (15 days by default), API calls fail until the reader logs out and in again.
-- **Feed paging follows a cursor the backend stores per user.** Reloading the page skips the unread rest of the previous page; see the backend README.
 - **Recommendations can include articles the reader has already read** in an earlier session. Only articles in the current list are skipped.
 - **A press during a like request is dropped, not queued.**
 
