@@ -117,20 +117,13 @@ export const newsApi = createApi({
       keepUnusedDataFor: 300, // Cache for 5 minutes
     }),
 
+    // Nothing is refetched afterwards: the reading list lives in the news slice, and every feed request
+    // moves the server's feed cursor on by a page, so a refetch nobody reads skips unseen articles.
     markArticleAsRead: builder.mutation<string, string>({
       query: (articleId) => ({
         url: `/news/mark-as-read/${articleId}`,
         method: 'POST',
       }),
-      
-      async onQueryStarted(_articleId, { dispatch, queryFulfilled }) {
-        try {
-          await queryFulfilled;
-          dispatch(newsApi.util.invalidateTags([{ type: 'UnseenArticles', id: 'LIST' }]));
-        } catch {
-          // Error handling
-        }
-      },
       
       transformErrorResponse: (error: FetchBaseQueryError) => handleApiError(error),
     }),
