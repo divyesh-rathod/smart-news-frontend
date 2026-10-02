@@ -56,17 +56,12 @@ const SignupPage: React.FC = () => {
 
   // === FORM SUBMISSION HANDLER ===
   const onSubmit = async (data: SignupFormData) => {
-    console.log('🚀 Starting signup process...', data);
-    
     // 1. Dispatch loading state to Redux
     dispatch(loginStart());
     
     try {
       // 2. Make API call through RTK Query
-      console.log('📡 Making API call...');
       const result = await signupMutation(data).unwrap();
-      
-      console.log('✅ Signup API Success:', result);
       
       // 3. Dispatch success to Redux store (saves user + token)
       dispatch(loginSuccess({
@@ -74,13 +69,9 @@ const SignupPage: React.FC = () => {
         token: result.access_token
       }));
       
-      console.log('🎉 User authenticated and saved to Redux');
-      
       // 4. Form will reset and user will be redirected by useEffect
       
-    } catch (err) {
-      console.error('❌ Signup failed:', err);
-      
+    } catch {
       // 5. Dispatch failure to Redux (stops loading)
       dispatch(loginFailure());
     }
@@ -106,7 +97,6 @@ const SignupPage: React.FC = () => {
 
   const handleRetry = () => {
     // RTK Query automatically resets error state on new mutation
-    console.log('🔄 Retrying signup...');
   };
 
   // === RENDER COMPONENT ===

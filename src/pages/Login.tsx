@@ -63,11 +63,8 @@ const LoginPage: React.FC = () => {
         token: result.access_token
       }));
       
-      console.log('Login successful:', result);
-      
-    } catch (err) {
+    } catch {
       dispatch(loginFailure());
-      console.error('Login failed:', err);
     }
   };
 
