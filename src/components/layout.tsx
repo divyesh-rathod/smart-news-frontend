@@ -26,7 +26,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
-import { logout } from '../store/slices/authSlice';
+import { signOut } from '../store/signOut';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const handleLogout = () => {
-    dispatch(logout());
+    dispatch(signOut());
     navigate('/login');
     handleProfileMenuClose();
   };
