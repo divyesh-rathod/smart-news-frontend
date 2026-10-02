@@ -71,32 +71,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Helper function to safely extract error message
-  const getErrorMessage = (error: unknown): string => {
-    if (error && typeof error === 'object') {
-      // RTK Query error structure
-      if ('data' in error && error.data && typeof error.data === 'object') {
-        if ('detail' in error.data && typeof error.data.detail === 'string') {
-          return error.data.detail;
-        }
-        if ('message' in error.data && typeof error.data.message === 'string') {
-          return error.data.message;
-        }
-      }
-      
-      // Our custom error structure from authApi
-      if ('message' in error && typeof error.message === 'string') {
-        return error.message;
-      }
-      
-      // Standard Error object
-      if ('message' in error && typeof error.message === 'string') {
-        return error.message;
-      }
-    }
-    
-    return 'Login failed. Please try again.';
-  };
   const getButtonContent = () => {
     if (isLoading) return <CircularProgress size={24} color="inherit" />;
     if (isSuccess) return '✓ Success';

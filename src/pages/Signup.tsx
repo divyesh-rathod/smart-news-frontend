@@ -39,7 +39,6 @@ const SignupPage: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     mode: 'onChange'

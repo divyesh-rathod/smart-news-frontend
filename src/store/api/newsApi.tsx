@@ -180,7 +180,7 @@ export const newsApi = createApi({
         method: 'POST',
       }),
       
-      async onQueryStarted(articleId, { dispatch, queryFulfilled }) {
+      async onQueryStarted(_articleId, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
           dispatch(newsApi.util.invalidateTags([{ type: 'UnseenArticles', id: 'LIST' }]));
@@ -273,7 +273,7 @@ export const newsApi = createApi({
       },
       
       // Transform the API response for our frontend use
-      transformResponse: (apiResponse: ToggleLikeResponse, meta, { articleId }): {
+      transformResponse: (apiResponse: ToggleLikeResponse, _meta, { articleId }): {
         apiResponse: ToggleLikeResponse;
         similarArticlesResult: SimilarArticlesResult | null;
       } => {
@@ -309,7 +309,7 @@ export const newsApi = createApi({
       },
       
       // Invalidate related caches
-      invalidatesTags: (result, error, { articleId }) => [
+      invalidatesTags: (_result, _error, { articleId }) => [
         { type: 'Article', id: articleId },
         { type: 'LikedArticles', id: 'LIST' }
       ],

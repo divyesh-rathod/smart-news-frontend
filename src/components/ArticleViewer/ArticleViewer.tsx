@@ -33,7 +33,7 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     // Remove non-existent properties
   } = useNews();
    
-  const { getHeaderClasses, isScrolled } = useScrollHeader({
+  const { getHeaderClasses } = useScrollHeader({
     threshold: 80,
     debounceMs: 10,
     hideOnDownScroll: true
@@ -157,17 +157,6 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
   // UTILITY FUNCTIONS
   // ========================================================================
   
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
   const renderCategories = () => {
     if (!currentArticle?.categories) return null;
     

@@ -6,8 +6,6 @@ import './News.css';
 
 const NewsPage: React.FC = () => {
   const {
-    currentArticle,
-    currentIndex,
     totalArticles,
     isLoadingMore,
     refreshArticles,
