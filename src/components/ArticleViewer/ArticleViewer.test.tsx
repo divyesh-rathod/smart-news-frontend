@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import ArticleViewer from './ArticleViewer';
@@ -96,6 +96,25 @@ describe('liking an article', () => {
 
     await waitFor(() => expect(likeCalls(calls)).toHaveLength(1));
     expect(likeCalls(calls)[0].path).toMatch(/\/a2$/);
+  });
+});
+
+describe('navigation', () => {
+  it('keeps Next and Previous usable after scrolling down to the like button', async () => {
+    setup(() => liked());
+    await screen.findByText('Feed article 1');
+    const header = screen.getByRole('button', { name: /next/i }).closest('.navigation-header');
+
+    Object.defineProperty(window, 'scrollY', { value: 600, configurable: true });
+    try {
+      fireEvent.scroll(window);
+      await new Promise((resolve) => setTimeout(resolve, 100)); // the hook debounces, then waits a frame
+
+      expect(header).toHaveClass('header-scrolled');
+      expect(header).not.toHaveClass('header-hidden');
+    } finally {
+      Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    }
   });
 });
 

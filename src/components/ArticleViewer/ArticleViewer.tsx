@@ -34,10 +34,12 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
     progress,
   } = news;
    
+  // The header holds Next/Previous, which readers need right after reaching the like button at the
+  // bottom, so it stays (sticky) instead of hiding on scroll down; scrolling only adds a shadow.
   const { getHeaderClasses } = useScrollHeader({
     threshold: 80,
     debounceMs: 10,
-    hideOnDownScroll: true
+    hideOnDownScroll: false
   });
 
   // ========================================================================
