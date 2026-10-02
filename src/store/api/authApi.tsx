@@ -114,16 +114,6 @@ export const authApi = createApi({
       },
     }),
     
-    // Get current user profile (protected route)
-    getCurrentUser: builder.query<User, void>({
-      query: () => '/users/me',
-      providesTags: ['User'],
-      
-      transformErrorResponse: (error: FetchBaseQueryError) => {
-        return handleApiError(error);
-      },
-    }),
-    
     // Update user profile
     updateUserProfile: builder.mutation<User, Partial<User>>({
       query: (userData) => ({
@@ -132,48 +122,7 @@ export const authApi = createApi({
         body: userData,
       }),
       
-      // Optimistically update cache
-      async onQueryStarted(userData, { dispatch, queryFulfilled }) {
-        const patchResult = dispatch(
-          authApi.util.updateQueryData('getCurrentUser', undefined, (draft) => {
-            Object.assign(draft, userData);
-          })
-        );
-        
-        try {
-          await queryFulfilled;
-        } catch {
-          patchResult.undo();
-        }
-      },
-      
       invalidatesTags: ['User'],
-      
-      transformErrorResponse: (error: FetchBaseQueryError) => {
-        return handleApiError(error);
-      },
-    }),
-    
-    // Refresh token (if your API supports it)
-    refreshToken: builder.mutation<{ access_token: string }, void>({
-      query: () => ({
-        url: '/auth/refresh',
-        method: 'POST',
-      }),
-      
-      transformErrorResponse: (error: FetchBaseQueryError) => {
-        return handleApiError(error);
-      },
-    }),
-    
-    // Logout (if you need server-side logout)
-    logout: builder.mutation<void, void>({
-      query: () => ({
-        url: '/auth/logout',
-        method: 'POST',
-      }),
-      
-      invalidatesTags: ['Auth', 'User'],
       
       transformErrorResponse: (error: FetchBaseQueryError) => {
         return handleApiError(error);
@@ -186,8 +135,5 @@ export const authApi = createApi({
 export const {
   useLoginMutation,
   useSignupMutation,
-  useGetCurrentUserQuery,
   useUpdateUserProfileMutation,
-  useRefreshTokenMutation,
-  useLogoutMutation,
 } = authApi;
